@@ -1,17 +1,27 @@
+databases:
+  - name: quick-backend-db
+    databaseName: quick_backend
+    user: quick_user
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"
+
 services:
   - type: web
     name: quick-backend
     env: node
     plan: free
     region: oregon
-    branch: main
+    branch: master
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: ''
+        fromDatabase:
+          name: quick-backend-db
+          property: connectionString
       - key: JWT_SECRET
-        value: ''
+        generateValue: true
       - key: TWILIO_ACCOUNT_SID
         value: ''
       - key: TWILIO_AUTH_TOKEN
