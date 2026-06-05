@@ -11,6 +11,8 @@ import driverRoutes from './routes/driverRoutes';
 import rideRoutes from './routes/rideRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import adminRoutes from './routes/adminRoutes';
+import uploadRoutes from './routes/uploadRoutes';
+import path from 'path';
 
 import City from './models/City';
 import RideOption from './models/RideOption';
@@ -21,6 +23,9 @@ const app: Application = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (like uploaded images)
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   try {
@@ -41,6 +46,7 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Mock Data Replacement Routes
 app.get('/api/cities', async (req: Request, res: Response) => {
