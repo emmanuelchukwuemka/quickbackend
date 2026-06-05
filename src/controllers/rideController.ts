@@ -3,10 +3,14 @@ import Ride from '../models/Ride';
 
 export const requestRide = async (req: Request, res: Response) => {
   try {
-    const ride = new Ride(req.body);
-    ride.status = 'Pending';
+    const ridePayload = { ...req.body } as any;
+    if (req.body.passenger_id && !req.body.passenger_ref) {
+      ridePayload.passenger_ref = req.body.passenger_id;
+    }
+    const ride = new Ride(ridePayload);
+    ride.status = 'searching';
     const savedRide = await ride.save();
-    res.status(201).json(savedRide);
+    res.status(201).json({ ride: savedRide });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -15,10 +19,10 @@ export const requestRide = async (req: Request, res: Response) => {
 export const acceptRide = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { driver_ref } = req.body;
-    const ride = await Ride.findByIdAndUpdate(id, { driver_ref, status: 'Accepted', accepted_at: new Date() }, { new: true });
+    const driver_ref = req.body.driver_ref || req.body.driver_id;
+    const ride = await Ride.findByIdAndUpdate(id, { driver_ref, status: 'accepted', accepted_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
-    res.json(ride);
+    res.json({ ride });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -27,9 +31,9 @@ export const acceptRide = async (req: Request, res: Response) => {
 export const startRide = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const ride = await Ride.findByIdAndUpdate(id, { status: 'Started', started_at: new Date() }, { new: true });
+    const ride = await Ride.findByIdAndUpdate(id, { status: 'In_progress', started_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
-    res.json(ride);
+    res.json({ ride });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -40,7 +44,7 @@ export const completeRide = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const ride = await Ride.findByIdAndUpdate(id, { status: 'Completed', completed_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
-    res.json(ride);
+    res.json({ ride });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -52,7 +56,7 @@ export const rateRide = async (req: Request, res: Response) => {
     const { rating } = req.body;
     const ride = await Ride.findByIdAndUpdate(id, { rating }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
-    res.json(ride);
+    res.json({ ride });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

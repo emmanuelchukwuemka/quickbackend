@@ -147,6 +147,12 @@ export const buildUpdateSet = (updates: any, values: any[] = []): { set: string;
     if (key.startsWith('$')) continue;
     const value = normalized[key];
     if (value === undefined) continue;
+    // Treat Date objects as primitive timestamp values, not jsonb
+    if (value instanceof Date) {
+      values.push(value);
+      setParts.push(`${key} = $${values.length}`);
+      continue;
+    }
     values.push(value);
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       setParts.push(`${key} = $${values.length}::jsonb`);

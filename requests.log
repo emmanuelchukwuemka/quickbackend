@@ -1,1 +1,95 @@
 2026-06-04T16:45:55.849Z POST /api/auth/request-otp {"email":"nwekee125@gmail.com"}
+2026-06-05T13:55:38.098Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T13:55:38.264Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"000000","role":"passenger"}
+2026-06-05T13:55:38.345Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T13:55:38.383Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"1234","role":"passenger"}
+2026-06-05T13:55:40.127Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
+2026-06-05T13:55:40.284Z PUT /api/rides/e536e8c2-b940-48cc-a1ce-add6471f6619/status {"status":"Completed"}
+2026-06-05T13:55:42.969Z GET /api/users undefined
+2026-06-05T13:55:43.083Z POST /api/users {"uid":"test_uid","email":"test@example.com","display_name":"Test User"}
+2026-06-05T13:55:44.866Z POST /api/payments {"user_ref":"dummy-user-id","provider":"Stripe","paymentMethod":"card","masked_number":"****1234"}
+2026-06-05T13:55:46.276Z POST /api/drivers {"uid":"driver_uid","email":"driver@example.com","display_name":"Test Driver","phone_number":"+1987654321"}
+2026-06-05T13:55:46.408Z GET /api/drivers undefined
+2026-06-05T13:59:15.853Z GET /health undefined
+2026-06-05T13:59:47.905Z GET /api/users undefined
+2026-06-05T14:05:39.121Z PUT /api/users/36054357-7301-4aac-986a-97a7cf873864 {"display_name":"Updated User"}
+2026-06-05T14:05:39.187Z POST /api/rides/request {"passenger_id":"36054357-7301-4aac-986a-97a7cf873864","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:05:43.211Z GET /api/users undefined
+2026-06-05T14:05:43.300Z POST /api/users {"uid":"test_uid","email":"test@example.com","display_name":"Test User"}
+2026-06-05T14:05:43.384Z GET /api/users/7df3c3f1-141a-43cc-8971-1e718a7406d9 undefined
+2026-06-05T14:05:44.855Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:05:45.009Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"000000","role":"passenger"}
+2026-06-05T14:05:45.171Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:05:45.211Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"611802","role":"passenger"}
+2026-06-05T14:05:46.649Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
+2026-06-05T14:05:46.755Z PUT /api/rides/dd032ad5-6596-4cd7-95c5-2e53028f94ab/status {"status":"Completed"}
+2026-06-05T14:05:49.244Z POST /api/payments {"user_ref":"dummy-user-id","provider":"Stripe","paymentMethod":"card","masked_number":"****1234"}
+2026-06-05T14:05:49.318Z GET /api/payments/user/dummy-user-id undefined
+2026-06-05T14:05:51.107Z POST /api/drivers {"uid":"driver_uid","email":"driver@example.com","display_name":"Test Driver","phone_number":"+1987654321"}
+2026-06-05T14:05:51.169Z GET /api/drivers undefined
+2026-06-05T14:06:47.109Z PUT /api/users/27ff498d-ee15-4c89-a86f-9335e297bf29 {"display_name":"Updated User"}
+2026-06-05T14:06:47.173Z POST /api/rides/request {"passenger_id":"27ff498d-ee15-4c89-a86f-9335e297bf29","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:06:47.232Z PUT /api/rides/3a8e8185-a538-45c1-b7c4-5fff20dad546/accept {"driver_id":"f51f3a6b-7af0-463b-81d0-08b47fd538e4"}
+2026-06-05T14:06:48.228Z GET /api/users undefined
+2026-06-05T14:06:48.309Z POST /api/users {"uid":"test_uid","email":"test@example.com","display_name":"Test User"}
+2026-06-05T14:06:48.426Z GET /api/users/b3e81b14-dbc4-4c8f-b39e-7c391154ea67 undefined
+2026-06-05T14:06:49.257Z POST /api/payments {"user_ref":"dummy-user-id","provider":"Stripe","paymentMethod":"card","masked_number":"****1234"}
+2026-06-05T14:06:49.328Z GET /api/payments/user/dummy-user-id undefined
+2026-06-05T14:06:50.161Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:06:50.269Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"000000","role":"passenger"}
+2026-06-05T14:06:50.385Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:06:50.421Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"365781","role":"passenger"}
+2026-06-05T14:06:51.185Z POST /api/drivers {"uid":"driver_uid","email":"driver@example.com","display_name":"Test Driver","phone_number":"+1987654321"}
+2026-06-05T14:06:51.272Z GET /api/drivers undefined
+2026-06-05T14:06:52.022Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
+2026-06-05T14:06:52.093Z PUT /api/rides/83ad5df5-d37a-4e0c-a03a-ae3000780536/status {"status":"Completed"}
+2026-06-05T14:07:54.611Z PUT /api/users/974b252f-bbe2-476e-87ee-520119e0cfbb {"display_name":"Updated User"}
+2026-06-05T14:07:54.696Z POST /api/rides/request {"passenger_id":"974b252f-bbe2-476e-87ee-520119e0cfbb","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:07:54.741Z PUT /api/rides/693eddc2-2666-4349-969a-3b207d0f5601/accept {"driver_id":"e0729f89-08dd-40ed-942f-26621535d341"}
+2026-06-05T14:07:55.706Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:07:55.799Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"000000","role":"passenger"}
+2026-06-05T14:07:55.862Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:07:55.897Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"357150","role":"passenger"}
+2026-06-05T14:07:56.784Z GET /api/users undefined
+2026-06-05T14:07:56.919Z POST /api/users {"uid":"test_uid","email":"test@example.com","display_name":"Test User"}
+2026-06-05T14:07:57.179Z GET /api/users/6bef0f1a-3329-45cc-b69b-0439a10107f6 undefined
+2026-06-05T14:07:58.305Z POST /api/payments {"user_ref":"dummy-user-id","provider":"Stripe","paymentMethod":"card","masked_number":"****1234"}
+2026-06-05T14:07:58.510Z GET /api/payments/user/dummy-user-id undefined
+2026-06-05T14:08:00.355Z POST /api/drivers {"uid":"driver_uid","email":"driver@example.com","display_name":"Test Driver","phone_number":"+1987654321"}
+2026-06-05T14:08:00.523Z GET /api/drivers undefined
+2026-06-05T14:08:01.497Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
+2026-06-05T14:08:01.589Z PUT /api/rides/b4be2f7d-f03d-492a-8a21-6a5949b675cc/status {"status":"Completed"}
+2026-06-05T14:08:35.437Z PUT /api/users/2ed7546d-15e9-4210-9e65-31e33a4f3672 {"display_name":"Updated User"}
+2026-06-05T14:08:35.475Z POST /api/rides/request {"passenger_id":"2ed7546d-15e9-4210-9e65-31e33a4f3672","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:08:35.499Z PUT /api/rides/6e65c4b6-c23f-4956-871f-61654f2e7793/accept {"driver_id":"798cabe8-5d78-486c-a1d6-37467e1da307"}
+2026-06-05T14:21:15.941Z POST /api/users {"uid":"tmpuser","email":"tmp@example.com","display_name":"Tmp User"}
+2026-06-05T14:21:16.380Z POST /api/drivers {"uid":"tmpdriver","email":"tmpdriver@example.com","display_name":"Tmp Driver","verification_status":"approved","is_online":"Online","location":{"type":"Point","coordinates":[3.3792,6.5244]}}
+2026-06-05T14:21:16.411Z POST /api/rides/request {"passenger_id":"0ca041e5-07e9-4808-b67f-10f1555f2b86","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:23:01.491Z POST /api/users {"uid":"tmpuser","email":"tmp@example.com","display_name":"Tmp User"}
+2026-06-05T14:23:01.819Z POST /api/drivers {"uid":"tmpdriver","email":"tmpdriver@example.com","display_name":"Tmp Driver","verification_status":"approved","is_online":"Online","location":{"type":"Point","coordinates":[3.3792,6.5244]}}
+2026-06-05T14:23:02.106Z POST /api/rides/request {"pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:23:02.324Z PUT /api/rides/18635e6c-c22d-43a4-825b-3739d915c70b/accept {}
+2026-06-05T14:24:55.664Z POST /api/users {"uid":"tmpuser","email":"tmp@example.com","display_name":"Tmp User"}
+2026-06-05T14:24:55.936Z POST /api/drivers {"uid":"tmpdriver","email":"tmpdriver@example.com","display_name":"Tmp Driver","verification_status":"approved","is_online":"Online","location":{"type":"Point","coordinates":[3.3792,6.5244]}}
+2026-06-05T14:24:56.349Z POST /api/rides/request {"pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:24:56.580Z PUT /api/rides/8a144806-b5b4-423a-b863-1e68aeef6c6d/accept {}
+2026-06-05T14:25:49.656Z PUT /api/users/38cd1199-c1f4-49c2-9f3d-f629f309317d {"display_name":"Updated User"}
+2026-06-05T14:25:49.756Z POST /api/rides/request {"passenger_id":"38cd1199-c1f4-49c2-9f3d-f629f309317d","pickupLat":6.5244,"pickupLng":3.3792,"dropoffLat":6.5244,"dropoffLng":3.3892}
+2026-06-05T14:25:49.821Z PUT /api/rides/a0eab48c-c688-4869-adab-055ffaa9bfdf/accept {"driver_id":"00714277-e146-4508-99da-4d002baf2c8e"}
+2026-06-05T14:25:49.870Z PUT /api/rides/a0eab48c-c688-4869-adab-055ffaa9bfdf/start undefined
+2026-06-05T14:25:49.903Z PUT /api/rides/a0eab48c-c688-4869-adab-055ffaa9bfdf/complete undefined
+2026-06-05T14:25:49.951Z POST /api/rides/a0eab48c-c688-4869-adab-055ffaa9bfdf/rate {"rating":5}
+2026-06-05T14:25:49.990Z PUT /api/admin/driver/00714277-e146-4508-99da-4d002baf2c8e/reject undefined
+2026-06-05T14:25:52.587Z POST /api/drivers {"uid":"driver_uid","email":"driver@example.com","display_name":"Test Driver","phone_number":"+1987654321"}
+2026-06-05T14:25:52.667Z GET /api/drivers undefined
+2026-06-05T14:25:54.564Z GET /api/users undefined
+2026-06-05T14:25:54.634Z POST /api/users {"uid":"test_uid","email":"test@example.com","display_name":"Test User"}
+2026-06-05T14:25:54.691Z GET /api/users/85df7075-8d9e-474a-a3f0-f26a7405f3d0 undefined
+2026-06-05T14:25:56.001Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:25:56.116Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"000000","role":"passenger"}
+2026-06-05T14:25:56.174Z POST /api/auth/request-otp {"phone_number":"+1234567890"}
+2026-06-05T14:25:56.207Z POST /api/auth/verify-otp {"phone_number":"+1234567890","code":"912773","role":"passenger"}
+2026-06-05T14:25:57.531Z POST /api/payments {"user_ref":"dummy-user-id","provider":"Stripe","paymentMethod":"card","masked_number":"****1234"}
+2026-06-05T14:25:57.741Z GET /api/payments/user/dummy-user-id undefined
+2026-06-05T14:26:00.028Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
+2026-06-05T14:26:00.091Z PUT /api/rides/7865fcf4-5a8a-4690-a2e5-0e23b1cb5bd7/status {"status":"Completed"}

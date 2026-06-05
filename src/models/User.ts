@@ -67,7 +67,7 @@ export default class User {
       is_online: this.is_online || 'Offline',
       wallet_balance: this.wallet_balance ?? 0,
       numbe_trips: this.numbe_trips ?? 0,
-      User_CurrentLocation: this.User_CurrentLocation || '',
+      user_currentlocation: this.User_CurrentLocation || '',
       lat: coordinates[1] ?? 0,
       lng: coordinates[0] ?? 0,
     };
@@ -86,7 +86,7 @@ export default class User {
       is_online: row.is_online,
       wallet_balance: Number(row.wallet_balance),
       numbe_trips: row.numbe_trips,
-      User_CurrentLocation: row.User_CurrentLocation ?? undefined,
+      User_CurrentLocation: row.user_currentlocation ?? undefined,
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
     });
   }

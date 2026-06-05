@@ -23,10 +23,22 @@ export const initDb = async () => {
       is_online TEXT DEFAULT 'Offline',
       wallet_balance NUMERIC(12,2) DEFAULT 0,
       numbe_trips INT DEFAULT 0,
-      "User_CurrentLocation" TEXT DEFAULT '',
+      user_currentlocation TEXT DEFAULT '',
       lat DOUBLE PRECISION DEFAULT 0,
       lng DOUBLE PRECISION DEFAULT 0
     );
+  `);
+
+  await query(`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE users RENAME COLUMN "User_CurrentLocation" TO user_currentlocation;
+      EXCEPTION WHEN undefined_column THEN
+        NULL;
+      END;
+    END
+    $$;
   `);
 
   await query(`
@@ -79,7 +91,7 @@ export const initDb = async () => {
   await query(`
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
-      user_ref TEXT REFERENCES users(id) ON DELETE SET NULL,
+      user_ref TEXT,
       provider TEXT NOT NULL,
       paymentMethod TEXT DEFAULT 'card',
       paymentStatus TEXT DEFAULT 'pending',
@@ -87,6 +99,11 @@ export const initDb = async () => {
       is_default BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+  `);
+
+  await query(`
+    ALTER TABLE payments
+    DROP CONSTRAINT IF EXISTS payments_user_ref_fkey;
   `);
 
   await query(`

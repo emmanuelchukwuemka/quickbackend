@@ -14,10 +14,14 @@ export interface IRide {
   pickup?: {
     type: 'Point';
     coordinates: number[];
+    lat?: number;
+    lng?: number;
   };
   dropoff?: {
     type: 'Point';
     coordinates: number[];
+    lat?: number;
+    lng?: number;
   };
   time?: string;
   requested_at?: Date;
@@ -109,8 +113,18 @@ export default class Ride {
       payment_method: row.payment_method,
       final_fare: Number(row.final_fare),
       distanceKm: Number(row.distanceKm),
-      pickup: { type: 'Point', coordinates: [Number(row.pickup_lng), Number(row.pickup_lat)] },
-      dropoff: { type: 'Point', coordinates: [Number(row.dropoff_lng), Number(row.dropoff_lat)] },
+      pickup: {
+        type: 'Point',
+        coordinates: [Number(row.pickup_lng), Number(row.pickup_lat)],
+        lat: Number(row.pickup_lat),
+        lng: Number(row.pickup_lng),
+      },
+      dropoff: {
+        type: 'Point',
+        coordinates: [Number(row.dropoff_lng), Number(row.dropoff_lat)],
+        lat: Number(row.dropoff_lat),
+        lng: Number(row.dropoff_lng),
+      },
       time: row.time,
       requested_at: row.requested_at,
       accepted_at: row.accepted_at,
