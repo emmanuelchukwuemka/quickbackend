@@ -17,6 +17,7 @@ export interface IDriver {
   documents?: { type: string; url: string }[];
   total_trips?: number;
   driver_rating?: number;
+  wallet_balance?: number;
   location?: {
     type: 'Point';
     coordinates: number[];
@@ -39,6 +40,7 @@ export default class Driver {
   documents?: { type: string; url: string }[];
   total_trips?: number;
   driver_rating?: number;
+  wallet_balance?: number;
   location?: { type: 'Point'; coordinates: number[] };
 
   constructor(data: Partial<IDriver> & { id?: string } = {}) {
@@ -57,6 +59,7 @@ export default class Driver {
     this.documents = data.documents || [];
     this.total_trips = data.total_trips ?? 0;
     this.driver_rating = data.driver_rating ?? 0;
+    this.wallet_balance = data.wallet_balance ?? 0;
     this.location = data.location;
   }
 
@@ -80,6 +83,7 @@ export default class Driver {
       documents: JSON.stringify(this.documents || []),
       total_trips: this.total_trips ?? 0,
       driver_rating: this.driver_rating ?? 0,
+      wallet_balance: this.wallet_balance ?? 0,
       lat: coordinates[1] ?? 0,
       lng: coordinates[0] ?? 0,
     };
@@ -102,6 +106,7 @@ export default class Driver {
       documents: Array.isArray(row.documents) ? row.documents : row.documents ? JSON.parse(row.documents) : [],
       total_trips: row.total_trips,
       driver_rating: Number(row.driver_rating),
+      wallet_balance: Number(row.wallet_balance),
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
     });
   }

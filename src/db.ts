@@ -64,6 +64,18 @@ export const initDb = async () => {
   `);
 
   await query(`
+    DO $$
+    BEGIN
+      BEGIN
+        ALTER TABLE drivers ADD COLUMN wallet_balance NUMERIC(12,2) DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN
+        NULL;
+      END;
+    END
+    $$;
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS rides (
       id TEXT PRIMARY KEY,
       passenger_ref TEXT REFERENCES users(id) ON DELETE SET NULL,

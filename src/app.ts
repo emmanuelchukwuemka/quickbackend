@@ -52,13 +52,6 @@ app.use('/api/upload', uploadRoutes);
 app.get('/api/cities', async (req: Request, res: Response) => {
   try {
     let cities = await City.find({});
-    if (cities.length === 0) {
-      cities = await City.insertMany([
-        { location_name: 'San Francisco, CA', Latlng: { lat: 37.7749, lng: -122.4194 } },
-        { location_name: 'Los Angeles, CA', Latlng: { lat: 34.0522, lng: -118.2437 } },
-        { location_name: 'New York, NY', Latlng: { lat: 40.7128, lng: -74.0060 } }
-      ]);
-    }
     res.json(cities);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -68,13 +61,6 @@ app.get('/api/cities', async (req: Request, res: Response) => {
 app.get('/api/rideOptions', async (req: Request, res: Response) => {
   try {
     let options = await RideOption.find({});
-    if (options.length === 0) {
-      options = await RideOption.insertMany([
-        { Type: 'Standard', price: '25.00', features: '4 seats', numbersofseats: '4' },
-        { Type: 'Premium', price: '45.00', features: 'Luxury, 4 seats', numbersofseats: '4' },
-        { Type: 'XL', price: '35.00', features: '6 seats', numbersofseats: '6' }
-      ]);
-    }
     res.json(options);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
