@@ -45,9 +45,18 @@ export const updateDriver = async (req: Request, res: Response) => {
 export const uploadDocuments = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const documents = req.body.documents; // Array of documents
-    const driver = await Driver.findByIdAndUpdate(id, { $push: { documents: { $each: documents } } }, { new: true });
-    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+    const newDocuments = req.body.documents || []; // Array of documents
+    
+    // Fetch existing driver to get current documents
+    const existingDriver = await Driver.findById(id);
+    if (!existingDriver) return res.status(404).json({ message: 'Driver not found' });
+    
+    const currentDocuments = Array.isArray(existingDriver.documents) ? existingDriver.documents : [];
+    const updatedDocuments = [...currentDocuments, ...newDocuments];
+    
+    // Save updated documents array as JSON string
+    const driver = await Driver.findByIdAndUpdate(id, { documents: JSON.stringify(updatedDocuments) }, { new: true });
+    
     res.json({ message: 'Documents uploaded', driver });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
