@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+requests.log
+response*.json
+debug_e2e.js
+debug_e2e.ts
+*.log

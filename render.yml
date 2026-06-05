@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: quick-backend
+    env: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        value: ''
+      - key: JWT_SECRET
+        value: ''
+      - key: TWILIO_ACCOUNT_SID
+        value: ''
+      - key: TWILIO_AUTH_TOKEN
+        value: ''
+      - key: TWILIO_PHONE_NUMBER
+        value: ''
+      - key: MAIL_HOST
+        value: ''
+      - key: MAIL_PORT
+        value: ''
+      - key: MAIL_USERNAME
+        value: ''
+      - key: MAIL_PASSWORD
+        value: ''
+      - key: MAIL_FROM_ADDRESS
+        value: ''
+      - key: MAIL_FROM_NAME
+        value: ''
