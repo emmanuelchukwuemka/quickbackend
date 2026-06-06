@@ -63,6 +63,26 @@ export const verifyOtp = async (req: Request, res: Response) => {
 export const userSignup = async (req: Request, res: Response) => {
   try {
     const userData = { ...req.body };
+    let existingUser = null;
+    if (userData.email) {
+      existingUser = await User.findOne({ email: userData.email });
+    }
+    if (!existingUser && userData.phone_number) {
+      existingUser = await User.findOne({ phone_number: userData.phone_number });
+    }
+    
+    if (existingUser) {
+      if (!existingUser.password) {
+        await User.findByIdAndUpdate(existingUser.id!, { password: userData.password, display_name: userData.display_name });
+        existingUser.password = userData.password;
+        existingUser.display_name = userData.display_name;
+        const token = generateToken(existingUser.id!);
+        return res.status(201).json({ user: existingUser, token });
+      } else {
+        return res.status(400).json({ message: 'User already exists. Please login.' });
+      }
+    }
+
     if (!userData.uid) {
       userData.uid = userData.email || userData.phone_number || crypto.randomUUID();
     }
