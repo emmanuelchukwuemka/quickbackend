@@ -93,3 +93,7 @@
 2026-06-05T14:25:57.741Z GET /api/payments/user/dummy-user-id undefined
 2026-06-05T14:26:00.028Z POST /api/rides {"pickup":{"type":"Point","coordinates":[20,10]},"dropoff":{"type":"Point","coordinates":[40,30]},"ride_type":"standard","payment_method":"card"}
 2026-06-05T14:26:00.091Z PUT /api/rides/7865fcf4-5a8a-4690-a2e5-0e23b1cb5bd7/status {"status":"Completed"}
+2026-06-06T15:07:49.175Z POST /api/upload undefined
+2026-06-06T15:08:00.917Z POST /api/upload undefined
+2026-06-06T15:08:51.338Z GET /health undefined
+2026-06-06T15:13:04.515Z POST /api/upload undefined
