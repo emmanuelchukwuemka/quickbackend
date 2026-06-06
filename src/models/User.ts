@@ -5,6 +5,7 @@ import { buildWhere, buildUpdateSet } from './queryHelper';
 export interface IUser {
   uid: string;
   email?: string;
+  password?: string;
   display_name: string;
   photo_url?: string;
   phone_number?: string;
@@ -24,6 +25,7 @@ export default class User {
   id?: string;
   uid: string;
   email?: string;
+  password?: string;
   display_name: string;
   photo_url?: string;
   phone_number?: string;
@@ -39,6 +41,7 @@ export default class User {
     this.id = data.id;
     this.uid = data.uid || '';
     this.email = data.email;
+    this.password = data.password;
     this.display_name = data.display_name || '';
     this.photo_url = data.photo_url;
     this.phone_number = data.phone_number;
@@ -59,6 +62,7 @@ export default class User {
       id,
       uid: this.uid,
       email: this.email || null,
+      password: this.password || null,
       display_name: this.display_name,
       photo_url: this.photo_url || '',
       phone_number: this.phone_number || '',
@@ -78,6 +82,7 @@ export default class User {
       id: row.id,
       uid: row.uid,
       email: row.email ?? undefined,
+      password: row.password ?? undefined,
       display_name: row.display_name,
       photo_url: row.photo_url ?? undefined,
       phone_number: row.phone_number ?? undefined,

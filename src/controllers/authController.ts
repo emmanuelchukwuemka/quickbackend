@@ -60,6 +60,35 @@ export const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
+export const userSignup = async (req: Request, res: Response) => {
+  try {
+    const userData = { ...req.body };
+    if (!userData.uid) {
+      userData.uid = userData.email || userData.phone_number || crypto.randomUUID();
+    }
+    const newUser = new User(userData);
+    const savedUser = await newUser.save();
+    const token = generateToken(savedUser.id!);
+    res.status(201).json({ user: savedUser, token });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const userLogin = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    const token = generateToken(user.id!);
+    res.json({ user, token });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const driverSignup = async (req: Request, res: Response) => {
   try {
     const driverData = { ...req.body };
