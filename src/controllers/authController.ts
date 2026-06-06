@@ -145,3 +145,42 @@ export const forgotPassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+import { OAuth2Client } from 'google-auth-library';
+const googleClient = new OAuth2Client();
+
+export const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ message: 'Missing idToken' });
+
+    // Verify the Google ID token. Without an audience, it verifies the signature and expiration.
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) return res.status(400).json({ message: 'Invalid token payload' });
+
+    const email = payload.email;
+    if (!email) return res.status(400).json({ message: 'No email found in token' });
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      const newUser = new User({
+        uid: crypto.randomUUID(),
+        email: email,
+        display_name: payload.name || '',
+      });
+      user = await newUser.save();
+    } else {
+      if (!user.display_name && payload.name) {
+        user.display_name = payload.name;
+        await User.findByIdAndUpdate(user.id!, { display_name: payload.name });
+      }
+    }
+
+    const token = generateToken(user.id!);
+    return res.status(200).json({ user, token });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+};
