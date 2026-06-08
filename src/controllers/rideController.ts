@@ -7,10 +7,29 @@ export const requestRide = async (req: Request, res: Response) => {
     if (req.body.passenger_id && !req.body.passenger_ref) {
       ridePayload.passenger_ref = req.body.passenger_id;
     }
+    
+    if (req.body.pickupLat && req.body.pickupLng) {
+      ridePayload.pickup = {
+        type: 'Point',
+        coordinates: [req.body.pickupLng, req.body.pickupLat],
+        lat: req.body.pickupLat,
+        lng: req.body.pickupLng
+      };
+    }
+    
+    if (req.body.dropoffLat && req.body.dropoffLng) {
+      ridePayload.dropoff = {
+        type: 'Point',
+        coordinates: [req.body.dropoffLng, req.body.dropoffLat],
+        lat: req.body.dropoffLat,
+        lng: req.body.dropoffLng
+      };
+    }
+
     const ride = new Ride(ridePayload);
     ride.status = 'searching';
     const savedRide = await ride.save();
-    res.status(201).json({ ride: savedRide });
+    res.status(201).json({ ride: { ...savedRide, _id: savedRide.id } });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
