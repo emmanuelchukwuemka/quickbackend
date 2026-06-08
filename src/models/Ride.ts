@@ -6,7 +6,7 @@ export interface IRide {
   passenger_ref?: string;
   driver_ref?: string;
   users?: string;
-  status?: 'Pending' | 'In_progress' | 'Completed' | 'cancelled' | 'searching' | 'requested' | 'in_progress' | 'accepted';
+  status?: 'Pending' | 'In_progress' | 'Completed' | 'cancelled' | 'searching' | 'requested' | 'in_progress' | 'accepted' | 'scheduled';
   ride_type?: 'standard' | 'premium' | 'car';
   payment_method?: 'cash' | 'card' | 'wallet' | 'Cash';
   final_fare?: number;
@@ -37,7 +37,7 @@ export default class Ride {
   passenger_ref?: string;
   driver_ref?: string;
   users?: string;
-  status?: 'Pending' | 'In_progress' | 'Completed' | 'cancelled' | 'searching' | 'requested' | 'in_progress' | 'accepted';
+  status?: 'Pending' | 'In_progress' | 'Completed' | 'cancelled' | 'searching' | 'requested' | 'in_progress' | 'accepted' | 'scheduled';
   ride_type?: 'standard' | 'premium' | 'car';
   payment_method?: 'cash' | 'card' | 'wallet' | 'Cash';
   final_fare?: number;
