@@ -33,12 +33,16 @@ export const requestRide = async (req: Request, res: Response) => {
 
     const rideData = { ...savedRide, _id: savedRide.id };
 
-    // Broadcast new ride to ALL connected drivers
-    const io = getIO();
-    for (const [, socketId] of driverSockets.entries()) {
-      io.to(socketId).emit('new_ride_offer', { ride: rideData });
+    // Broadcast to connected drivers — wrapped so a socket error never blocks the response
+    try {
+      const io = getIO();
+      for (const [, socketId] of driverSockets.entries()) {
+        io.to(socketId).emit('new_ride_offer', { ride: rideData });
+      }
+      console.log(`[Socket] Broadcasted new_ride_offer to ${driverSockets.size} driver(s)`);
+    } catch (socketErr) {
+      console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
     }
-    console.log(`[Socket] Broadcasted new_ride_offer to ${driverSockets.size} driver(s)`);
 
     res.status(201).json({ ride: rideData });
   } catch (error: any) {
@@ -53,15 +57,18 @@ export const acceptRide = async (req: Request, res: Response) => {
     const ride = await Ride.findByIdAndUpdate(id, { driver_ref, status: 'accepted', accepted_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
-    // Notify the passenger that their ride was accepted
-    const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
-    if (passengerSocketId) {
-      const io = getIO();
-      io.to(passengerSocketId).emit('ride_accepted', {
-        ride: { ...ride, _id: ride.id },
-        driver_ref
-      });
-      console.log(`[Socket] Emitted ride_accepted to passenger ${ride.passenger_ref}`);
+    try {
+      const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
+      if (passengerSocketId) {
+        const io = getIO();
+        io.to(passengerSocketId).emit('ride_accepted', {
+          ride: { ...ride, _id: ride.id },
+          driver_ref
+        });
+        console.log(`[Socket] Emitted ride_accepted to passenger ${ride.passenger_ref}`);
+      }
+    } catch (socketErr) {
+      console.warn('[Socket] Could not emit ride_accepted:', socketErr);
     }
 
     res.json({ ride: { ...ride, _id: ride.id } });
