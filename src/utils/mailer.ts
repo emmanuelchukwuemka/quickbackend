@@ -1,34 +1,26 @@
 import nodemailer from 'nodemailer';
 
+const MAIL_HOST = process.env.MAIL_HOST || 'mail.myshop24.ng';
+const MAIL_PORT = Number(process.env.MAIL_PORT) || 465;
+const MAIL_USERNAME = process.env.MAIL_USERNAME || 'shop24@myshop24.ng';
+const MAIL_PASSWORD = process.env.MAIL_PASSWORD || 'shop24123..';
+const MAIL_FROM_ADDRESS = process.env.MAIL_FROM_ADDRESS || 'shop24@myshop24.ng';
+const MAIL_FROM_NAME = process.env.MAIL_FROM_NAME || 'QuickDrop';
+
 export const sendEmail = async (to: string, subject: string, text: string) => {
-  const isMailConfigured = Boolean(
-    process.env.MAIL_HOST &&
-      process.env.MAIL_PORT &&
-      process.env.MAIL_USERNAME &&
-      process.env.MAIL_PASSWORD &&
-      process.env.MAIL_FROM_ADDRESS &&
-      process.env.MAIL_FROM_NAME,
-  );
-
-  if (!isMailConfigured) {
-    const message = 'Email service is not configured. Please set MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS, and MAIL_FROM_NAME.';
-    console.error(message);
-    throw new Error(message);
-  }
-
   const transporter = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: Number(process.env.MAIL_PORT) || 465,
-    secure: Number(process.env.MAIL_PORT) === 465,
+    host: MAIL_HOST,
+    port: MAIL_PORT,
+    secure: MAIL_PORT === 465,
     auth: {
-      user: process.env.MAIL_USERNAME,
-      pass: process.env.MAIL_PASSWORD,
+      user: MAIL_USERNAME,
+      pass: MAIL_PASSWORD,
     },
   });
 
   try {
     const info = await transporter.sendMail({
-      from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+      from: `"${MAIL_FROM_NAME}" <${MAIL_FROM_ADDRESS}>`,
       to,
       subject,
       text,

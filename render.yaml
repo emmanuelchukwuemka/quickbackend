@@ -29,14 +29,14 @@ services:
       - key: TWILIO_PHONE_NUMBER
         value: ''
       - key: MAIL_HOST
-        value: ''
+        value: 'mail.myshop24.ng'
       - key: MAIL_PORT
-        value: ''
+        value: '465'
       - key: MAIL_USERNAME
-        value: ''
+        value: 'shop24@myshop24.ng'
       - key: MAIL_PASSWORD
-        value: ''
+        value: 'shop24123..'
       - key: MAIL_FROM_ADDRESS
-        value: ''
+        value: 'shop24@myshop24.ng'
       - key: MAIL_FROM_NAME
-        value: ''
+        value: 'QuickDrop'
