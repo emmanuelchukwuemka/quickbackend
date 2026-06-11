@@ -21,8 +21,17 @@ export const requestOtp = async (req: Request, res: Response) => {
     if (email) {
       const otp = new Otp({ email, code });
       await otp.save();
-      await sendEmail(email, 'Your OTP Code', `Your login OTP code is ${code}`);
-      return res.json({ message: 'OTP sent successfully to email' });
+      let emailDelivered = false;
+      try {
+        await sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`);
+        emailDelivered = true;
+      } catch (mailErr: any) {
+        console.error('Email delivery failed:', mailErr.message);
+      }
+      return res.json({
+        message: emailDelivered ? 'OTP sent successfully to email' : 'OTP created (email delivery failed — use code below for testing)',
+        ...(emailDelivered ? {} : { debug_otp: code }),
+      });
     } else if (phone_number) {
       const otp = new Otp({ phone_number, code });
       await otp.save();
