@@ -54,6 +54,17 @@ export const initDb = async () => {
   `);
 
   await query(`
+    DO $$
+    BEGIN
+      BEGIN ALTER TABLE users ADD COLUMN state TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE users ADD COLUMN dob TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+    END
+    $$;
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS drivers (
       id TEXT PRIMARY KEY,
       uid TEXT UNIQUE NOT NULL,

@@ -15,6 +15,10 @@ export interface IUser {
   wallet_balance?: number;
   numbe_trips?: number;
   User_CurrentLocation?: string;
+  state?: string;
+  country?: string;
+  dob?: string;
+  gender?: string;
   location?: {
     type: 'Point';
     coordinates: number[];
@@ -33,6 +37,10 @@ export default class User {
   is_active?: boolean;
   is_online?: 'Online' | 'Offline';
   wallet_balance?: number;
+  state?: string;
+  country?: string;
+  dob?: string;
+  gender?: string;
   numbe_trips?: number;
   User_CurrentLocation?: string;
   location?: { type: 'Point'; coordinates: number[] };
@@ -51,6 +59,10 @@ export default class User {
     this.wallet_balance = data.wallet_balance ?? 0;
     this.numbe_trips = data.numbe_trips ?? 0;
     this.User_CurrentLocation = data.User_CurrentLocation;
+    this.state = data.state;
+    this.country = data.country;
+    this.dob = data.dob;
+    this.gender = data.gender;
     this.location = data.location;
   }
 
@@ -72,6 +84,10 @@ export default class User {
       wallet_balance: this.wallet_balance ?? 0,
       numbe_trips: this.numbe_trips ?? 0,
       user_currentlocation: this.User_CurrentLocation || '',
+      state: this.state || '',
+      country: this.country || '',
+      dob: this.dob || '',
+      gender: this.gender || '',
       lat: coordinates[1] ?? 0,
       lng: coordinates[0] ?? 0,
     };
@@ -92,6 +108,10 @@ export default class User {
       wallet_balance: Number(row.wallet_balance),
       numbe_trips: row.numbe_trips,
       User_CurrentLocation: row.user_currentlocation ?? undefined,
+      state: row.state ?? undefined,
+      country: row.country ?? undefined,
+      dob: row.dob ?? undefined,
+      gender: row.gender ?? undefined,
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
     });
   }
