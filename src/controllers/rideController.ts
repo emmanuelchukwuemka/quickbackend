@@ -27,25 +27,38 @@ export const requestRide = async (req: Request, res: Response) => {
       };
     }
 
-    const ride = new Ride(ridePayload);
-    ride.status = 'searching';
-    const savedRide = await ride.save();
-
-    const rideData = { ...savedRide, _id: savedRide.id };
-
-    // Broadcast to connected drivers — wrapped so a socket error never blocks the response
-    try {
-      const io = getIO();
-      for (const [, socketId] of driverSockets.entries()) {
-        io.to(socketId).emit('new_ride_offer', { ride: rideData });
+    const saveRideAndBroadcast = async (payload: any) => {
+      const ride = new Ride(payload);
+      ride.status = 'searching';
+      const savedRide = await ride.save();
+      const rideData = { ...savedRide, _id: savedRide.id };
+      try {
+        const io = getIO();
+        for (const [, socketId] of driverSockets.entries()) {
+          io.to(socketId).emit('new_ride_offer', { ride: rideData });
+        }
+        console.log(`[Socket] Broadcasted new_ride_offer to ${driverSockets.size} driver(s)`);
+      } catch (socketErr) {
+        console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
       }
-      console.log(`[Socket] Broadcasted new_ride_offer to ${driverSockets.size} driver(s)`);
-    } catch (socketErr) {
-      console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
-    }
+      return rideData;
+    };
 
-    res.status(201).json({ ride: rideData });
+    try {
+      const rideData = await saveRideAndBroadcast(ridePayload);
+      return res.status(201).json({ ride: rideData });
+    } catch (saveError: any) {
+      // FK constraint: passenger_ref not in users table (e.g. DB reset in dev)
+      if (saveError.code === '23503' && ridePayload.passenger_ref) {
+        console.warn(`[Ride] passenger_ref ${ridePayload.passenger_ref} not found — saving ride without it`);
+        ridePayload.passenger_ref = null;
+        const rideData = await saveRideAndBroadcast(ridePayload);
+        return res.status(201).json({ ride: rideData });
+      }
+      throw saveError;
+    }
   } catch (error: any) {
+    console.error('[Ride] requestRide error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };
