@@ -7,7 +7,7 @@
     "test": "jest --runInBand --detectOpenHandles",
     "dev": "nodemon src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node --dns-result-order=ipv4first dist/app.js"
   },
   "keywords": [],
   "author": "",

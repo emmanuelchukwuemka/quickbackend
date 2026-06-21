@@ -1,8 +1,4 @@
 import { Pool } from 'pg';
-import dns from 'dns';
-
-// Render doesn't support IPv6 — force IPv4 for all DNS lookups
-dns.setDefaultResultOrder('ipv4first');
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/quick_backend';
 
