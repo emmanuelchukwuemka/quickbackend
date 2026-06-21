@@ -2,7 +2,12 @@ import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/quick_backend';
 
-export const pool = new Pool({ connectionString });
+export const pool = new Pool({
+  connectionString,
+  ssl: connectionString.includes('supabase') || connectionString.includes('render')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
 export const query = async (text: string, params: any[] = []) => {
   const result = await pool.query(text, params);
