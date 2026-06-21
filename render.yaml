@@ -1,11 +1,3 @@
-databases:
-  - name: quick-backend-db
-    databaseName: quick_backend
-    user: quick_user
-    plan: free
-    region: oregon
-    postgresMajorVersion: "16"
-
 services:
   - type: web
     name: quick-backend
@@ -17,9 +9,7 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: quick-backend-db
-          property: connectionString
+        value: postgresql://postgres:Ifunnaya123@db.vcymhdqlndyanklyukka.supabase.co:5432/postgres
       - key: JWT_SECRET
         generateValue: true
       - key: TWILIO_ACCOUNT_SID
