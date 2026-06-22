@@ -83,6 +83,29 @@ export const initSockets = (io: Server) => {
       }
     });
 
+    // In-app chat relay — forward message to the other party in the ride
+    socket.on('chat_message', (data: {
+      rideId: string;
+      toId: string;
+      toRole: 'driver' | 'passenger';
+      message: string;
+      senderName: string;
+      senderId: string;
+      timestamp: number;
+    }) => {
+      try {
+        const targetSocketId = data.toRole === 'driver'
+          ? driverSockets.get(data.toId)
+          : userSockets.get(data.toId);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('chat_message', data);
+          console.log(`[Socket] Chat relayed to ${data.toRole} ${data.toId}`);
+        }
+      } catch (err) {
+        console.error('[Socket] chat_message error:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
       // Remove from maps if exists
