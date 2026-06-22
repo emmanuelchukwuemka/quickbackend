@@ -23,6 +23,8 @@ export interface IRide {
     lat?: number;
     lng?: number;
   };
+  pickup_address?: string;
+  dropoff_address?: string;
   time?: string;
   requested_at?: Date;
   accepted_at?: Date;
@@ -44,6 +46,8 @@ export default class Ride {
   distanceKm?: number;
   pickup?: { type: 'Point'; coordinates: number[] };
   dropoff?: { type: 'Point'; coordinates: number[] };
+  pickup_address?: string;
+  dropoff_address?: string;
   time?: string;
   requested_at?: Date;
   accepted_at?: Date;
@@ -64,6 +68,8 @@ export default class Ride {
     this.distanceKm = data.distanceKm ?? 0;
     this.pickup = data.pickup;
     this.dropoff = data.dropoff;
+    this.pickup_address = data.pickup_address || '';
+    this.dropoff_address = data.dropoff_address || '';
     this.time = data.time || '';
     this.requested_at = data.requested_at ? new Date(data.requested_at) : undefined;
     this.accepted_at = data.accepted_at ? new Date(data.accepted_at) : undefined;
@@ -92,6 +98,8 @@ export default class Ride {
       pickup_lng: pickupCoords[0] ?? 0,
       dropoff_lat: dropoffCoords[1] ?? 0,
       dropoff_lng: dropoffCoords[0] ?? 0,
+      pickup_address: this.pickup_address || '',
+      dropoff_address: this.dropoff_address || '',
       time: this.time || '',
       requested_at: this.requested_at || new Date(),
       accepted_at: this.accepted_at || null,
@@ -125,6 +133,8 @@ export default class Ride {
         lat: Number(row.dropoff_lat),
         lng: Number(row.dropoff_lng),
       },
+      pickup_address: row.pickup_address ?? '',
+      dropoff_address: row.dropoff_address ?? '',
       time: row.time,
       requested_at: row.requested_at,
       accepted_at: row.accepted_at,

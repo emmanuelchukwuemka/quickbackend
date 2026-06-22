@@ -120,6 +120,8 @@ export const initDb = async () => {
       pickup_lng DOUBLE PRECISION,
       dropoff_lat DOUBLE PRECISION,
       dropoff_lng DOUBLE PRECISION,
+      pickup_address TEXT DEFAULT '',
+      dropoff_address TEXT DEFAULT '',
       time TEXT DEFAULT '',
       requested_at TIMESTAMPTZ DEFAULT NOW(),
       accepted_at TIMESTAMPTZ,
@@ -128,6 +130,15 @@ export const initDb = async () => {
       cancelled_at TIMESTAMPTZ,
       rating INT
     );
+  `);
+
+  await query(`
+    DO $$
+    BEGIN
+      BEGIN ALTER TABLE rides ADD COLUMN pickup_address TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+      BEGIN ALTER TABLE rides ADD COLUMN dropoff_address TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
+    END
+    $$;
   `);
 
   await query(`

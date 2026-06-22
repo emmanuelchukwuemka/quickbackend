@@ -1,6 +1,65 @@
 import { Request, Response } from 'express';
 import Ride from '../models/Ride';
+import { query } from '../db';
 import { getIO, driverSockets, getUserSocket } from '../sockets/socketManager';
+
+export const getRideById = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    // Join with users to get passenger display_name and phone
+    const result = await query(
+      `SELECT r.*, u.display_name AS passenger_name, u.phone_number AS passenger_phone
+       FROM rides r
+       LEFT JOIN users u ON r.passenger_ref = u.id
+       WHERE r.id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!result.rowCount) return res.status(404).json({ message: 'Ride not found' });
+    const row = result.rows[0];
+    const ride = {
+      id: row.id,
+      _id: row.id,
+      passenger_ref: row.passenger_ref,
+      driver_ref: row.driver_ref,
+      status: row.status,
+      ride_type: row.ride_type,
+      payment_method: row.payment_method,
+      final_fare: Number(row.final_fare),
+      fare: Number(row.final_fare),
+      distanceKm: Number(row.distancekm ?? row.distanceKm ?? 0),
+      pickup_lat: Number(row.pickup_lat),
+      pickup_lng: Number(row.pickup_lng),
+      dropoff_lat: Number(row.dropoff_lat),
+      dropoff_lng: Number(row.dropoff_lng),
+      pickup_address: row.pickup_address || '',
+      dropoff_address: row.dropoff_address || '',
+      passenger_name: row.passenger_name || '',
+      passenger_phone: row.passenger_phone || '',
+      requested_at: row.requested_at,
+      accepted_at: row.accepted_at,
+    };
+    return res.json({ ride });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const arriveRide = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const ride = await Ride.findByIdAndUpdate(id, { status: 'arrived' }, { new: true });
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+    try {
+      const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
+      if (passengerSocketId) {
+        getIO().to(passengerSocketId).emit('driver_arrived', { rideId: id });
+      }
+    } catch (_) {}
+    res.json({ ride: { ...ride, _id: ride.id } });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const requestRide = async (req: Request, res: Response) => {
   try {
@@ -26,6 +85,10 @@ export const requestRide = async (req: Request, res: Response) => {
         lng: req.body.dropoffLng
       };
     }
+
+    // Store address strings if provided by the client
+    ridePayload.pickup_address = req.body.pickupAddress || req.body.pickup_address || '';
+    ridePayload.dropoff_address = req.body.dropoffAddress || req.body.dropoff_address || '';
 
     const saveRideAndBroadcast = async (payload: any) => {
       const ride = new Ride(payload);
