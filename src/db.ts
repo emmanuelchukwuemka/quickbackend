@@ -1,25 +1,7 @@
 import { Pool } from 'pg';
-import { resolve4 } from 'dns/promises';
 
 const rawUrl = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/quick_backend';
 
-// Resolve hostname to IPv4 before creating pool (Render doesn't support IPv6)
-async function resolveIPv4(url: string): Promise<string> {
-  try {
-    const parsed = new URL(url);
-    const addrs = await resolve4(parsed.hostname);
-    if (addrs.length > 0) {
-      console.log(`[db] ${parsed.hostname} → ${addrs[0]} (IPv4)`);
-      parsed.hostname = addrs[0];
-      return parsed.toString();
-    }
-  } catch (e) {
-    console.log('[db] IPv4 resolution failed, using original URL');
-  }
-  return url;
-}
-
-// Pool is initialised inside initDb after IPv4 resolution
 export let pool: Pool;
 
 export const query = async (text: string, params: any[] = []) => {
@@ -28,10 +10,9 @@ export const query = async (text: string, params: any[] = []) => {
 };
 
 export const initDb = async () => {
-  const connectionString = await resolveIPv4(rawUrl);
   pool = new Pool({
-    connectionString,
-    ssl: rawUrl.includes('supabase') || rawUrl.includes('render') || rawUrl.includes('neon')
+    connectionString: rawUrl,
+    ssl: rawUrl.includes('neon') || rawUrl.includes('supabase') || rawUrl.includes('render')
       ? { rejectUnauthorized: false }
       : false,
   });
