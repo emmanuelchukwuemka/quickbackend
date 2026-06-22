@@ -31,7 +31,7 @@ export const initDb = async () => {
   const connectionString = await resolveIPv4(rawUrl);
   pool = new Pool({
     connectionString,
-    ssl: rawUrl.includes('supabase') || rawUrl.includes('render')
+    ssl: rawUrl.includes('supabase') || rawUrl.includes('render') || rawUrl.includes('neon')
       ? { rejectUnauthorized: false }
       : false,
   });

@@ -9,7 +9,7 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:Ifunnaya123@db.vcymhdqlndyanklyukka.supabase.co:5432/postgres
+        value: postgresql://neondb_owner:npg_rC8PyzhiLn7Y@ep-soft-cake-atn6hzpp.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require
       - key: JWT_SECRET
         generateValue: true
       - key: TWILIO_ACCOUNT_SID
