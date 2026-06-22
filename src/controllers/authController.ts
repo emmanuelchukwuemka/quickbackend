@@ -121,6 +121,26 @@ export const userLogin = async (req: Request, res: Response) => {
 export const driverSignup = async (req: Request, res: Response) => {
   try {
     const driverData = { ...req.body };
+
+    // Check if driver already exists by email or phone
+    let existing: any = null;
+    if (driverData.email) existing = await Driver.findOne({ email: driverData.email });
+    if (!existing && driverData.phone_number) existing = await Driver.findOne({ phone_number: driverData.phone_number });
+
+    if (existing) {
+      // Update password/name if the record was created without one
+      if (driverData.password) {
+        await Driver.findByIdAndUpdate(existing.id!, {
+          password: driverData.password,
+          ...(driverData.display_name ? { display_name: driverData.display_name } : {}),
+          ...(driverData.phone_number ? { phone_number: driverData.phone_number } : {}),
+        });
+        existing.password = driverData.password;
+      }
+      const token = generateToken(existing.id!);
+      return res.status(200).json({ driver: existing, token });
+    }
+
     if (!driverData.uid) {
       driverData.uid = driverData.email || driverData.phone_number || crypto.randomUUID();
     }
