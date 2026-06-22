@@ -159,7 +159,7 @@ const googleClient = new OAuth2Client();
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, displayName: clientDisplayName } = req.body;
     if (!idToken) return res.status(400).json({ message: 'Missing idToken' });
 
     let email: string | undefined;
@@ -178,9 +178,12 @@ export const googleLogin = async (req: Request, res: Response) => {
       console.warn('verifyIdToken failed, falling back to JWT decode:', verifyErr.message);
       const decoded = jwt.decode(idToken) as Record<string, any> | null;
       email = decoded?.email;
-      name = decoded?.name;
-      googleSub = decoded?.sub;
+      name = decoded?.name || decoded?.display_name;
+      googleSub = decoded?.sub || decoded?.user_id;
     }
+
+    // Firebase ID tokens don't embed the display name; use the client-provided value
+    if (!name && clientDisplayName) name = clientDisplayName;
 
     if (!email) return res.status(400).json({ message: 'No email found in Google token' });
 
