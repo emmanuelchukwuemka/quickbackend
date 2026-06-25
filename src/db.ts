@@ -9,6 +9,14 @@ export const query = async (text: string, params: any[] = []) => {
   return result;
 };
 
+const run = async (sql: string, label: string) => {
+  try {
+    await query(sql);
+  } catch (e: any) {
+    console.warn(`[initDb] ${label}: ${e.message}`);
+  }
+};
+
 export const initDb = async () => {
   pool = new Pool({
     connectionString: rawUrl,
@@ -17,7 +25,8 @@ export const initDb = async () => {
       : false,
   });
 
-  await query(`
+  // ── users ──────────────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       uid TEXT UNIQUE NOT NULL,
@@ -34,44 +43,17 @@ export const initDb = async () => {
       lat DOUBLE PRECISION DEFAULT 0,
       lng DOUBLE PRECISION DEFAULT 0
     );
-  `);
+  `, 'create users');
 
-  await query(`
-    DO $$
-    BEGIN
-      BEGIN
-        ALTER TABLE users RENAME COLUMN "User_CurrentLocation" TO user_currentlocation;
-      EXCEPTION WHEN undefined_column THEN
-        NULL;
-      END;
-    END
-    $$;
-  `);
+  await run(`ALTER TABLE users RENAME COLUMN "User_CurrentLocation" TO user_currentlocation;`, 'rename User_CurrentLocation');
+  await run(`ALTER TABLE users ADD COLUMN password TEXT;`, 'add users.password');
+  await run(`ALTER TABLE users ADD COLUMN state   TEXT DEFAULT '';`, 'add users.state');
+  await run(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT '';`, 'add users.country');
+  await run(`ALTER TABLE users ADD COLUMN dob     TEXT DEFAULT '';`, 'add users.dob');
+  await run(`ALTER TABLE users ADD COLUMN gender  TEXT DEFAULT '';`, 'add users.gender');
 
-  await query(`
-    DO $$
-    BEGIN
-      BEGIN
-        ALTER TABLE users ADD COLUMN password TEXT;
-      EXCEPTION WHEN duplicate_column THEN
-        NULL;
-      END;
-    END
-    $$;
-  `);
-
-  await query(`
-    DO $$
-    BEGIN
-      BEGIN ALTER TABLE users ADD COLUMN state TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-      BEGIN ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-      BEGIN ALTER TABLE users ADD COLUMN dob TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-      BEGIN ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-    END
-    $$;
-  `);
-
-  await query(`
+  // ── drivers ────────────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS drivers (
       id TEXT PRIMARY KEY,
       uid TEXT UNIQUE NOT NULL,
@@ -89,29 +71,18 @@ export const initDb = async () => {
       total_trips INT DEFAULT 0,
       driver_rating NUMERIC(3,2) DEFAULT 0,
       lat DOUBLE PRECISION DEFAULT 0,
-      lng DOUBLE PRECISION DEFAULT 0
+      lng DOUBLE PRECISION DEFAULT 0,
+      wallet_balance NUMERIC(12,2) DEFAULT 0
     );
-  `);
+  `, 'create drivers');
 
-  await query(`
-    DO $$
-    BEGIN
-      BEGIN
-        ALTER TABLE drivers ADD COLUMN wallet_balance NUMERIC(12,2) DEFAULT 0;
-      EXCEPTION WHEN duplicate_column THEN
-        NULL;
-      END;
-    END
-    $$;
-  `);
+  await run(`ALTER TABLE drivers ADD COLUMN wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add drivers.wallet_balance');
 
-  await query(`
-    ALTER TABLE rides
-    DROP CONSTRAINT IF EXISTS rides_passenger_ref_fkey,
-    DROP CONSTRAINT IF EXISTS rides_driver_ref_fkey;
-  `).catch(() => {});
+  // ── rides ──────────────────────────────────────────────────────────────────
+  await run(`ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_passenger_ref_fkey;`, 'drop rides_passenger_ref_fkey');
+  await run(`ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_driver_ref_fkey;`,    'drop rides_driver_ref_fkey');
 
-  await query(`
+  await run(`
     CREATE TABLE IF NOT EXISTS rides (
       id TEXT PRIMARY KEY,
       passenger_ref TEXT,
@@ -136,18 +107,14 @@ export const initDb = async () => {
       cancelled_at TIMESTAMPTZ,
       rating INT
     );
-  `);
+  `, 'create rides');
 
-  await query(`
-    DO $$
-    BEGIN
-      BEGIN ALTER TABLE rides ADD COLUMN pickup_address TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-      BEGIN ALTER TABLE rides ADD COLUMN dropoff_address TEXT DEFAULT ''; EXCEPTION WHEN duplicate_column THEN NULL; END;
-    END
-    $$;
-  `);
+  await run(`ALTER TABLE rides ADD COLUMN pickup_address  TEXT DEFAULT '';`, 'add rides.pickup_address');
+  await run(`ALTER TABLE rides ADD COLUMN dropoff_address TEXT DEFAULT '';`, 'add rides.dropoff_address');
+  await run(`ALTER TABLE rides ADD COLUMN driver_ref TEXT;`, 'add rides.driver_ref');
 
-  await query(`
+  // ── payments ───────────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
       user_ref TEXT,
@@ -158,14 +125,12 @@ export const initDb = async () => {
       is_default BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
-  `);
+  `, 'create payments');
 
-  await query(`
-    ALTER TABLE payments
-    DROP CONSTRAINT IF EXISTS payments_user_ref_fkey;
-  `);
+  await run(`ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_user_ref_fkey;`, 'drop payments_user_ref_fkey');
 
-  await query(`
+  // ── otps ───────────────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS otps (
       id TEXT PRIMARY KEY,
       phone_number TEXT,
@@ -173,9 +138,10 @@ export const initDb = async () => {
       code TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
-  `);
+  `, 'create otps');
 
-  await query(`
+  // ── cities ─────────────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS cities (
       id TEXT PRIMARY KEY,
       location_name TEXT NOT NULL,
@@ -183,9 +149,10 @@ export const initDb = async () => {
       lng DOUBLE PRECISION DEFAULT 0,
       pin_image TEXT DEFAULT ''
     );
-  `);
+  `, 'create cities');
 
-  await query(`
+  // ── ride_options ───────────────────────────────────────────────────────────
+  await run(`
     CREATE TABLE IF NOT EXISTS ride_options (
       id TEXT PRIMARY KEY,
       "Type" TEXT NOT NULL,
@@ -194,5 +161,19 @@ export const initDb = async () => {
       numbersofseats TEXT DEFAULT '4',
       image_url TEXT DEFAULT ''
     );
-  `);
+  `, 'create ride_options');
+
+  // ── scheduled_rides ────────────────────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS scheduled_rides (
+      id TEXT PRIMARY KEY,
+      passenger_ref TEXT,
+      pickup_address TEXT DEFAULT '',
+      dropoff_address TEXT DEFAULT '',
+      estimated_fare NUMERIC(12,2) DEFAULT 0,
+      scheduled_time TIMESTAMPTZ,
+      status TEXT DEFAULT 'Pending',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `, 'create scheduled_rides');
 };
