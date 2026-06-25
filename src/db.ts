@@ -106,10 +106,16 @@ export const initDb = async () => {
   `);
 
   await query(`
+    ALTER TABLE rides
+    DROP CONSTRAINT IF EXISTS rides_passenger_ref_fkey,
+    DROP CONSTRAINT IF EXISTS rides_driver_ref_fkey;
+  `).catch(() => {});
+
+  await query(`
     CREATE TABLE IF NOT EXISTS rides (
       id TEXT PRIMARY KEY,
-      passenger_ref TEXT REFERENCES users(id) ON DELETE SET NULL,
-      driver_ref TEXT REFERENCES drivers(id) ON DELETE SET NULL,
+      passenger_ref TEXT,
+      driver_ref TEXT,
       users TEXT,
       status TEXT DEFAULT 'Pending',
       ride_type TEXT DEFAULT 'standard',
