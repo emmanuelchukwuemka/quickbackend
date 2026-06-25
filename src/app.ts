@@ -39,6 +39,17 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'Backend is running' });
 });
 
+// DB diagnostic — lists existing tables
+app.get('/api/debug/tables', async (req: Request, res: Response) => {
+  try {
+    const { query } = await import('./db');
+    const result = await query(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`);
+    res.json({ tables: result.rows.map((r: any) => r.tablename) });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
