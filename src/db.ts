@@ -46,10 +46,18 @@ export const initDb = async () => {
   `, 'create users');
 
   await run(`ALTER TABLE users RENAME COLUMN "User_CurrentLocation" TO user_currentlocation;`, 'rename User_CurrentLocation');
-  await run(`ALTER TABLE users ADD COLUMN password TEXT;`, 'add users.password');
-  await run(`ALTER TABLE users ADD COLUMN state   TEXT DEFAULT '';`, 'add users.state');
-  await run(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT '';`, 'add users.country');
-  await run(`ALTER TABLE users ADD COLUMN dob     TEXT DEFAULT '';`, 'add users.dob');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';`, 'add users.display_name');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';`, 'add users.photo_url');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number TEXT DEFAULT '';`, 'add users.phone_number');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add users.wallet_balance');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS numbe_trips INT DEFAULT 0;`, 'add users.numbe_trips');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS user_currentlocation TEXT DEFAULT '';`, 'add users.user_currentlocation');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION DEFAULT 0;`, 'add users.lat');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION DEFAULT 0;`, 'add users.lng');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;`, 'add users.password');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS state   TEXT DEFAULT '';`, 'add users.state');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT DEFAULT '';`, 'add users.country');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS dob     TEXT DEFAULT '';`, 'add users.dob');
   await run(`ALTER TABLE users ADD COLUMN gender  TEXT DEFAULT '';`, 'add users.gender');
 
   // ── drivers ────────────────────────────────────────────────────────────────
@@ -76,7 +84,14 @@ export const initDb = async () => {
     );
   `, 'create drivers');
 
-  await run(`ALTER TABLE drivers ADD COLUMN wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add drivers.wallet_balance');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';`, 'add drivers.display_name');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';`, 'add drivers.photo_url');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS phone_number TEXT DEFAULT '';`, 'add drivers.phone_number');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS driver_rating NUMERIC(3,2) DEFAULT 0;`, 'add drivers.driver_rating');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS total_trips INT DEFAULT 0;`, 'add drivers.total_trips');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add drivers.wallet_balance');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION DEFAULT 0;`, 'add drivers.lat');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION DEFAULT 0;`, 'add drivers.lng');
 
   // ── rides ──────────────────────────────────────────────────────────────────
   await run(`ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_passenger_ref_fkey;`, 'drop rides_passenger_ref_fkey');
