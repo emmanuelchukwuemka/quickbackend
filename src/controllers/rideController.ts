@@ -8,9 +8,13 @@ export const getRideById = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     // Join with users to get passenger display_name and phone
     const result = await query(
-      `SELECT r.*, u.display_name AS passenger_name, u.phone_number AS passenger_phone
+      `SELECT r.*,
+              u.display_name AS passenger_name, u.phone_number AS passenger_phone,
+              d.display_name AS driver_name,    d.phone_number AS driver_phone,
+              d.driver_rating AS driver_rating
        FROM rides r
-       LEFT JOIN users u ON r.passenger_ref = u.id
+       LEFT JOIN users   u ON r.passenger_ref = u.uid
+       LEFT JOIN drivers d ON r.driver_ref    = d.uid
        WHERE r.id = $1 LIMIT 1`,
       [id]
     );
@@ -35,6 +39,9 @@ export const getRideById = async (req: Request, res: Response) => {
       dropoff_address: row.dropoff_address || '',
       passenger_name: row.passenger_name || '',
       passenger_phone: row.passenger_phone || '',
+      driver_name: row.driver_name || '',
+      driver_phone: row.driver_phone || '',
+      driver_rating: row.driver_rating != null ? Number(row.driver_rating) : null,
       requested_at: row.requested_at,
       accepted_at: row.accepted_at,
     };
