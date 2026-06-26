@@ -104,10 +104,16 @@ export const requestRide = async (req: Request, res: Response) => {
       const rideData = { ...savedRide, _id: savedRide.id };
       try {
         const io = getIO();
-        for (const [, socketId] of driverSockets.entries()) {
+        const activeStatuses = ['accepted', 'in_progress', 'In_progress', 'arrived'];
+        let sent = 0;
+        for (const [driverId, socketId] of driverSockets.entries()) {
+          // Skip drivers already on an active ride
+          const busy = await Ride.findOne({ driver_ref: driverId, status: { $in: activeStatuses } });
+          if (busy) continue;
           io.to(socketId).emit('new_ride_offer', { ride: rideData });
+          sent++;
         }
-        console.log(`[Socket] Broadcasted new_ride_offer to ${driverSockets.size} driver(s)`);
+        console.log(`[Socket] Broadcasted new_ride_offer to ${sent}/${driverSockets.size} available driver(s)`);
       } catch (socketErr) {
         console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
       }
@@ -211,6 +217,20 @@ export const cancelRide = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const ride = await Ride.findByIdAndUpdate(id, { status: 'Cancelled', cancelled_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    // Notify every connected driver so they can dismiss the incoming request card
+    try {
+      const io = getIO();
+      for (const [, socketId] of driverSockets.entries()) {
+        io.to(socketId).emit('ride_cancelled', { rideId: id });
+      }
+      // Also notify the assigned driver if one was already set
+      if (ride.driver_ref) {
+        const driverSocketId = driverSockets.get(ride.driver_ref.toString());
+        if (driverSocketId) io.to(driverSocketId).emit('ride_cancelled', { rideId: id });
+      }
+    } catch (_) {}
+
     res.json(ride);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
