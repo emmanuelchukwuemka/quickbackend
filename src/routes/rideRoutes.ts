@@ -8,10 +8,15 @@ import {
 
 const router = Router();
 
-// GET all rides
+// GET rides — optional ?status= filter (case-insensitive, comma-separated)
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const rides = await Ride.find();
+    const filter: Record<string, any> = {};
+    if (req.query.status) {
+      const statuses = (req.query.status as string).split(',').map(s => s.trim());
+      filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+    }
+    const rides = await Ride.find(filter);
     res.json(rides);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
