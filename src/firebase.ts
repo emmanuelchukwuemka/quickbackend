@@ -1,9 +1,10 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 
 let initialized = false;
 
 function init() {
-  if (initialized) return;
+  if (initialized || getApps().length > 0) { initialized = true; return; }
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!raw) {
     console.warn('[FCM] FIREBASE_SERVICE_ACCOUNT not set — push notifications disabled');
@@ -11,7 +12,7 @@ function init() {
   }
   try {
     const serviceAccount = JSON.parse(raw);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    initializeApp({ credential: cert(serviceAccount) });
     initialized = true;
     console.log('[FCM] firebase-admin initialized');
   } catch (e) {
@@ -31,7 +32,8 @@ export async function sendPushToTokens(
   const valid = tokens.filter(Boolean);
   if (valid.length === 0) return;
   try {
-    const response = await admin.messaging().sendEachForMulticast({
+    const messaging = getMessaging();
+    const response = await messaging.sendEachForMulticast({
       tokens: valid,
       notification: { title, body },
       data,
