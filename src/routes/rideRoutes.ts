@@ -3,7 +3,7 @@ import Ride from '../models/Ride';
 import {
   getRideById, requestRide, acceptRide, arriveRide,
   startRide, completeRide, rateRide, cancelRide,
-  getUserRideHistory, getDriverRideHistory, verifyOtp,
+  getUserRideHistory, getDriverRideHistory,
 } from '../controllers/rideController';
 
 const router = Router();
@@ -43,9 +43,6 @@ router.post('/:id/arrive', arriveRide);
 router.post('/:id/arrived', arriveRide);
 router.post('/:id/driver-arrived', arriveRide);
 router.put('/:id/arrive', arriveRide);
-
-// OTP verification (also starts the ride on success)
-router.post('/:id/verify-otp', verifyOtp);
 
 // Start / complete / rate / cancel
 router.put('/:id/start', startRide);

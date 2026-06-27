@@ -127,7 +127,7 @@ export const initDb = async () => {
   await run(`ALTER TABLE rides ADD COLUMN pickup_address  TEXT DEFAULT '';`, 'add rides.pickup_address');
   await run(`ALTER TABLE rides ADD COLUMN dropoff_address TEXT DEFAULT '';`, 'add rides.dropoff_address');
   await run(`ALTER TABLE rides ADD COLUMN driver_ref TEXT;`, 'add rides.driver_ref');
-  await run(`ALTER TABLE rides ADD COLUMN IF NOT EXISTS pickup_otp TEXT DEFAULT NULL;`, 'add rides.pickup_otp');
+
 
   // ── payments ───────────────────────────────────────────────────────────────
   await run(`
