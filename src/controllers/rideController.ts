@@ -54,15 +54,56 @@ export const getRideById = async (req: Request, res: Response) => {
 export const arriveRide = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const ride = await Ride.findByIdAndUpdate(id, { status: 'arrived' }, { new: true });
+    // Generate a 4-digit OTP for passenger verification
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    const ride = await Ride.findByIdAndUpdate(id, { status: 'arrived', pickup_otp: otp }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
     try {
       const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
       if (passengerSocketId) {
-        getIO().to(passengerSocketId).emit('driver_arrived', { rideId: id });
+        getIO().to(passengerSocketId).emit('driver_arrived', { rideId: id, otp });
       }
     } catch (_) {}
     res.json({ ride: { ...ride, _id: ride.id } });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { otp } = req.body as { otp: string };
+    if (!otp) return res.status(400).json({ message: 'OTP is required' });
+
+    const result = await query(
+      `SELECT pickup_otp, passenger_ref FROM rides WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!result.rowCount) return res.status(404).json({ message: 'Ride not found' });
+
+    const row = result.rows[0];
+    if (!row.pickup_otp) return res.status(400).json({ message: 'No OTP set for this ride' });
+    if (row.pickup_otp !== otp.trim()) {
+      return res.status(400).json({ message: 'Incorrect OTP' });
+    }
+
+    // OTP correct — start the ride
+    const ride = await Ride.findByIdAndUpdate(
+      id,
+      { status: 'In_progress', started_at: new Date(), pickup_otp: null },
+      { new: true }
+    );
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    try {
+      const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
+      if (passengerSocketId) {
+        getIO().to(passengerSocketId).emit('ride_started', { ride: { ...ride, _id: ride.id } });
+      }
+    } catch (_) {}
+
+    return res.json({ success: true, ride: { ...ride, _id: ride.id } });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
