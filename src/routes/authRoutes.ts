@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requestOtp, verifyOtp, userSignup, userLogin, driverSignup, driverLogin, forgotPassword, resetDriverPassword, googleLogin } from '../controllers/authController';
+import { requestOtp, verifyOtp, userSignup, userLogin, driverSignup, driverLogin, forgotPassword, resetDriverPassword, resetUserPassword, googleLogin } from '../controllers/authController';
 
 const router = Router();
 
@@ -11,6 +11,7 @@ router.post('/driver-signup', driverSignup);
 router.post('/driver-login', driverLogin);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetDriverPassword);
+router.post('/reset-user-password', resetUserPassword);
 router.post('/google-login', googleLogin);
 
 export default router;

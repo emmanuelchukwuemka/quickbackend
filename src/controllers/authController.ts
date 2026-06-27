@@ -175,6 +175,31 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
+export const resetUserPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    }
+    const otpRecord = await Otp.findOne({ email, code: otp });
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email' });
+    }
+    await User.findByIdAndUpdate(user.id!, { password: newPassword });
+    await Otp.deleteOne({ id: otpRecord.id });
+    res.json({ message: 'Password updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const resetDriverPassword = async (req: Request, res: Response) => {
   try {
     const { email, otp, newPassword } = req.body;
