@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Driver from '../models/Driver';
+import { query } from '../db';
 
 export const getAllDrivers = async (req: Request, res: Response) => {
   try {
@@ -58,6 +59,19 @@ export const uploadDocuments = async (req: Request, res: Response) => {
     const driver = await Driver.findByIdAndUpdate(id, { documents: JSON.stringify(updatedDocuments) }, { new: true });
     
     res.json({ message: 'Documents uploaded', driver });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const saveFcmToken = async (req: Request, res: Response) => {
+  try {
+    const { driver_uid, fcm_token } = req.body;
+    if (!driver_uid || !fcm_token) {
+      return res.status(400).json({ message: 'driver_uid and fcm_token are required' });
+    }
+    await query(`UPDATE drivers SET fcm_token = $1 WHERE uid = $2`, [fcm_token, driver_uid]);
+    res.json({ message: 'FCM token saved' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

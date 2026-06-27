@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Ride from '../models/Ride';
 import { query } from '../db';
 import { getIO, driverSockets, getUserSocket } from '../sockets/socketManager';
+import { sendPushToTokens } from '../firebase';
 
 export const getRideById = async (req: Request, res: Response) => {
   try {
@@ -117,6 +118,24 @@ export const requestRide = async (req: Request, res: Response) => {
       } catch (socketErr) {
         console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
       }
+
+      // FCM: push to online drivers who have a token stored
+      try {
+        const tokenRows = await query(
+          `SELECT fcm_token FROM drivers WHERE is_online = 'Online' AND fcm_token IS NOT NULL AND fcm_token != ''`
+        );
+        const tokens = tokenRows.rows.map((r: any) => r.fcm_token as string).filter(Boolean);
+        const pickup = rideData.pickup_address || 'Nearby location';
+        await sendPushToTokens(
+          tokens,
+          'New Ride Request',
+          `Pickup: ${pickup}`,
+          { rideId: String(rideData.id ?? rideData._id ?? '') }
+        );
+      } catch (fcmErr) {
+        console.warn('[FCM] push error:', fcmErr);
+      }
+
       return rideData;
     };
 

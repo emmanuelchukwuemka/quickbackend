@@ -97,6 +97,11 @@ initSockets(io);
 const connectDB = async () => {
   try {
     await initDb();
+    // Add fcm_token column if it doesn't exist (idempotent migration)
+    try {
+      const { query } = await import('./db');
+      await query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS fcm_token VARCHAR DEFAULT ''`);
+    } catch (e) { /* column may already exist */ }
     console.log('Connected to PostgreSQL');
     server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (err) {

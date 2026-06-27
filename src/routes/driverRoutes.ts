@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllDrivers, getDriverById, createDriver, updateDriver, uploadDocuments } from '../controllers/driverController';
+import { getAllDrivers, getDriverById, createDriver, updateDriver, uploadDocuments, saveFcmToken } from '../controllers/driverController';
 
 const router = Router();
 
@@ -8,5 +8,6 @@ router.get('/:id', getDriverById);
 router.post('/', createDriver);
 router.put('/:id', updateDriver);
 router.post('/:id/documents', uploadDocuments);
+router.put('/fcm-token', saveFcmToken);
 
 export default router;
