@@ -72,7 +72,6 @@ export default class User {
 
     return {
       id,
-      uid: this.uid,
       email: this.email || null,
       password: this.password || null,
       display_name: this.display_name,
@@ -96,7 +95,7 @@ export default class User {
   static fromRow(row: any) {
     return new User({
       id: row.id,
-      uid: row.uid,
+      uid: row.uid || row.id,
       email: row.email ?? undefined,
       password: row.password ?? undefined,
       display_name: row.display_name,

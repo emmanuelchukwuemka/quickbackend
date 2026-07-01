@@ -69,7 +69,6 @@ export default class Driver {
 
     return {
       id,
-      uid: this.uid,
       email: this.email || null,
       display_name: this.display_name,
       photo_url: this.photo_url || '',
@@ -92,7 +91,7 @@ export default class Driver {
   static fromRow(row: any) {
     return new Driver({
       id: row.id,
-      uid: row.uid,
+      uid: row.uid || row.id,
       email: row.email ?? undefined,
       display_name: row.display_name,
       photo_url: row.photo_url ?? undefined,
