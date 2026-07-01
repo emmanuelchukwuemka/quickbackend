@@ -71,7 +71,7 @@ export default class User {
 
     return {
       email: this.email || null,
-      password: this.password || null,
+      password: this.password || '',
       name: this.display_name || '',
       display_name: this.display_name || '',
       photo_url: this.photo_url || '',

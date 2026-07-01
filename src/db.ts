@@ -57,7 +57,8 @@ export const initDb = async () => {
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS user_currentlocation TEXT DEFAULT '';`, 'add users.user_currentlocation');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION DEFAULT 0;`, 'add users.lat');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION DEFAULT 0;`, 'add users.lng');
-  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;`, 'add users.password');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '';`, 'add users.password');
+  await run(`ALTER TABLE users ALTER COLUMN password SET DEFAULT '';`, 'set users.password default');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS uid TEXT;`, 'add users.uid');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_time TIMESTAMPTZ DEFAULT NOW();`, 'add users.created_time');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`, 'add users.is_active');
