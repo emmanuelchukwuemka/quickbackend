@@ -57,6 +57,8 @@ export const initDb = async () => {
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT;`, 'add users.password');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS uid TEXT;`, 'add users.uid');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_time TIMESTAMPTZ DEFAULT NOW();`, 'add users.created_time');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`, 'add users.is_active');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online TEXT DEFAULT 'Offline';`, 'add users.is_online');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS state   TEXT DEFAULT '';`, 'add users.state');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT DEFAULT '';`, 'add users.country');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS dob     TEXT DEFAULT '';`, 'add users.dob');
@@ -94,6 +96,14 @@ export const initDb = async () => {
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add drivers.wallet_balance');
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION DEFAULT 0;`, 'add drivers.lat');
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION DEFAULT 0;`, 'add drivers.lng');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS uid TEXT;`, 'add drivers.uid');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '';`, 'add drivers.password');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS created_time TIMESTAMPTZ DEFAULT NOW();`, 'add drivers.created_time');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'driver';`, 'add drivers.role');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`, 'add drivers.is_active');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS is_online TEXT DEFAULT 'Offline';`, 'add drivers.is_online');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS verification_status TEXT DEFAULT 'pending';`, 'add drivers.verification_status');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]';`, 'add drivers.documents');
 
   // ── rides ──────────────────────────────────────────────────────────────────
   await run(`ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_passenger_ref_fkey;`, 'drop rides_passenger_ref_fkey');
