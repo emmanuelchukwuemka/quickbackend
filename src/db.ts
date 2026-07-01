@@ -46,7 +46,10 @@ export const initDb = async () => {
   `, 'create users');
 
   await run(`ALTER TABLE users RENAME COLUMN "User_CurrentLocation" TO user_currentlocation;`, 'rename User_CurrentLocation');
-  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';`, 'add users.display_name');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';`, 'add users.name');
+  await run(`ALTER TABLE users ALTER COLUMN name SET DEFAULT '';`, 'set users.name default');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT '';`, 'add users.display_name');
+  await run(`ALTER TABLE users ALTER COLUMN display_name SET DEFAULT '';`, 'set users.display_name default');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';`, 'add users.photo_url');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number TEXT DEFAULT '';`, 'add users.phone_number');
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(12,2) DEFAULT 0;`, 'add users.wallet_balance');
@@ -88,7 +91,12 @@ export const initDb = async () => {
     );
   `, 'create drivers');
 
-  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';`, 'add drivers.display_name');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';`, 'add drivers.name');
+  await run(`ALTER TABLE drivers ALTER COLUMN name SET DEFAULT '';`, 'set drivers.name default');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS full_name TEXT DEFAULT '';`, 'add drivers.full_name');
+  await run(`ALTER TABLE drivers ALTER COLUMN full_name SET DEFAULT '';`, 'set drivers.full_name default');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT '';`, 'add drivers.display_name');
+  await run(`ALTER TABLE drivers ALTER COLUMN display_name SET DEFAULT '';`, 'set drivers.display_name default');
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';`, 'add drivers.photo_url');
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS phone_number TEXT DEFAULT '';`, 'add drivers.phone_number');
   await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS driver_rating NUMERIC(3,2) DEFAULT 0;`, 'add drivers.driver_rating');

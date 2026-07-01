@@ -68,7 +68,9 @@ export default class Driver {
 
     return {
       email: this.email || null,
-      display_name: this.display_name,
+      name: this.display_name || '',
+      full_name: this.display_name || '',
+      display_name: this.display_name || '',
       photo_url: this.photo_url || '',
       phone_number: this.phone_number || '',
       password: this.password || '',
@@ -90,7 +92,7 @@ export default class Driver {
       id: row.id,
       uid: row.uid || row.id,
       email: row.email ?? undefined,
-      display_name: row.display_name,
+      display_name: row.display_name || row.full_name || row.name || '',
       photo_url: row.photo_url ?? undefined,
       phone_number: row.phone_number ?? undefined,
       password: row.password ?? undefined,

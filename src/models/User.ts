@@ -72,7 +72,8 @@ export default class User {
     return {
       email: this.email || null,
       password: this.password || null,
-      display_name: this.display_name,
+      name: this.display_name || '',
+      display_name: this.display_name || '',
       photo_url: this.photo_url || '',
       phone_number: this.phone_number || '',
       is_active: this.is_active ?? true,
@@ -95,7 +96,7 @@ export default class User {
       uid: row.uid || row.id,
       email: row.email ?? undefined,
       password: row.password ?? undefined,
-      display_name: row.display_name,
+      display_name: row.display_name || row.name || '',
       photo_url: row.photo_url ?? undefined,
       phone_number: row.phone_number ?? undefined,
       created_time: row.created_time,
