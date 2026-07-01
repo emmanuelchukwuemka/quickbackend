@@ -74,7 +74,6 @@ export default class Driver {
       photo_url: this.photo_url || '',
       phone_number: this.phone_number || '',
       password: this.password || '',
-      created_time: this.created_time || new Date(),
       role: this.role || 'driver',
       is_active: this.is_active ?? true,
       is_online: this.is_online || 'Offline',

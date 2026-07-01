@@ -77,7 +77,6 @@ export default class User {
       display_name: this.display_name,
       photo_url: this.photo_url || '',
       phone_number: this.phone_number || '',
-      created_time: this.created_time || new Date(),
       is_active: this.is_active ?? true,
       is_online: this.is_online || 'Offline',
       wallet_balance: this.wallet_balance ?? 0,
