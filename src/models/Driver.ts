@@ -64,11 +64,9 @@ export default class Driver {
   }
 
   private toDbRow() {
-    const id = this.id! || crypto.randomUUID();
     const coordinates = this.location?.coordinates || [0, 0];
 
     return {
-      id,
       email: this.email || null,
       display_name: this.display_name,
       photo_url: this.photo_url || '',

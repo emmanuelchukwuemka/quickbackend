@@ -28,8 +28,8 @@ export const initDb = async () => {
   // ── users ──────────────────────────────────────────────────────────────────
   await run(`
     CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      uid TEXT UNIQUE NOT NULL,
+      id BIGSERIAL PRIMARY KEY,
+      uid TEXT,
       email TEXT UNIQUE,
       display_name TEXT NOT NULL DEFAULT '',
       photo_url TEXT DEFAULT '',
@@ -67,8 +67,8 @@ export const initDb = async () => {
   // ── drivers ────────────────────────────────────────────────────────────────
   await run(`
     CREATE TABLE IF NOT EXISTS drivers (
-      id TEXT PRIMARY KEY,
-      uid TEXT UNIQUE NOT NULL,
+      id BIGSERIAL PRIMARY KEY,
+      uid TEXT,
       email TEXT UNIQUE,
       display_name TEXT NOT NULL DEFAULT '',
       photo_url TEXT DEFAULT '',
