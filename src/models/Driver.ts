@@ -69,6 +69,7 @@ export default class Driver {
 
     return {
       id,
+      uid: this.uid || this.email || this.phone_number || id,
       email: this.email || null,
       name: this.display_name || '',
       full_name: this.display_name || '',
