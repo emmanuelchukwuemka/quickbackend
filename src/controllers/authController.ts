@@ -21,20 +21,11 @@ export const requestOtp = async (req: Request, res: Response) => {
     if (email) {
       const otp = new Otp({ email, code });
       await otp.save();
-      // Fire-and-forget with 8 s deadline — response is sent immediately
-      const emailPromise = Promise.race([
-        sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
-      ]).then(() => true).catch((e: any) => {
-        console.error('[mailer] delivery failed:', e.message);
-        return false;
-      });
-      // Respond immediately; email attempt continues in background
-      res.json({ message: 'OTP sent to email', debug_otp: code });
-      // Log result when it arrives
-      emailPromise.then(ok => {
-        if (ok) console.log(`[mailer] OTP delivered to ${email}`);
-      });
+      // Fire-and-forget — respond immediately, Resend handles delivery
+      sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`)
+        .then(() => console.log(`[mailer] OTP delivered to ${email}`))
+        .catch((e: any) => console.error('[mailer] delivery failed:', e.message));
+      res.json({ message: 'OTP sent to email' });
       return;
     } else if (phone_number) {
       const otp = new Otp({ phone_number, code });
