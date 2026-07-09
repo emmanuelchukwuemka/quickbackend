@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
-const GMAIL_USER = process.env.GMAIL_USER || 'nwekee125@gmail.com';
-const GMAIL_PASS = process.env.GMAIL_PASS || 'xyuxmucbxvpzynxm';
+const GMAIL_USER = process.env.GMAIL_USER || 'mycribafrica@gmail.com';
+const GMAIL_PASS = process.env.GMAIL_PASS || 'evwp gdfh ging lbph';
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
   // Try port 465 (SSL) first, then fall back to 587 (STARTTLS)
