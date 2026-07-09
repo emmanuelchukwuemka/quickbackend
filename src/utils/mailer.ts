@@ -39,9 +39,9 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
         port: cfg.port,
         secure: cfg.secure,
         auth: { user: cfg.user, pass: cfg.pass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
 
       const info = await transporter.sendMail({
