@@ -4,6 +4,26 @@ import { query } from '../db';
 import { getIO, driverSockets, getUserSocket } from '../sockets/socketManager';
 import { sendPushToTokens } from '../firebase';
 import { calculateRideFare } from '../utils/fare';
+import { calculateDistanceAndETA } from '../utils/mapsService';
+import { sanitizeDisplayName } from '../utils/displayName';
+
+const toEstimatedMinutes = (value: unknown) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.ceil(num) : null;
+};
+
+const buildRideResponse = (ride: Ride) => {
+  const estimatedMinutes = toEstimatedMinutes(ride.time);
+  return {
+    ...ride,
+    _id: ride.id,
+    fare: ride.final_fare ?? 0,
+    estimated_time: estimatedMinutes,
+    estimatedTime: estimatedMinutes,
+    duration: estimatedMinutes,
+    distance: ride.distanceKm ?? 0,
+  };
+};
 
 export const getRideById = async (req: Request, res: Response) => {
   try {
@@ -22,6 +42,7 @@ export const getRideById = async (req: Request, res: Response) => {
     );
     if (!result.rowCount) return res.status(404).json({ message: 'Ride not found' });
     const row = result.rows[0];
+    const estimatedMinutes = toEstimatedMinutes(row.time);
     const ride = {
       id: row.id,
       _id: row.id,
@@ -44,9 +65,14 @@ export const getRideById = async (req: Request, res: Response) => {
       driver_name: row.driver_name || '',
       driver_phone: row.driver_phone || '',
       driver_rating: row.driver_rating != null ? Number(row.driver_rating) : null,
+      estimated_time: estimatedMinutes,
+      estimatedTime: estimatedMinutes,
+      duration: estimatedMinutes,
       requested_at: row.requested_at,
       accepted_at: row.accepted_at,
     };
+    ride.passenger_name = sanitizeDisplayName(ride.passenger_name);
+    ride.driver_name = sanitizeDisplayName(ride.driver_name);
     return res.json({ ride });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -100,17 +126,25 @@ export const requestRide = async (req: Request, res: Response) => {
     ridePayload.dropoff_address = req.body.dropoffAddress || req.body.dropoff_address || '';
     ridePayload.distanceKm = Number(req.body.distanceKm ?? req.body.distance_km ?? 0) || 0;
     ridePayload.ride_type = (req.body.ride_type || ridePayload.ride_type || 'standard').toString();
+
+    if (req.body.pickupLat && req.body.pickupLng && req.body.dropoffLat && req.body.dropoffLng) {
+      const routeMetrics = calculateDistanceAndETA(
+        { lat: Number(req.body.pickupLat), lng: Number(req.body.pickupLng) },
+        { lat: Number(req.body.dropoffLat), lng: Number(req.body.dropoffLng) }
+      );
+      if (!ridePayload.distanceKm || ridePayload.distanceKm <= 0) {
+        ridePayload.distanceKm = routeMetrics.distanceKm;
+      }
+      ridePayload.time = String(routeMetrics.estimatedMinutes);
+    }
+
     ridePayload.final_fare = calculateRideFare(ridePayload.distanceKm, ridePayload.ride_type);
 
     const saveRideAndBroadcast = async (payload: any) => {
       const ride = new Ride(payload);
       ride.status = 'searching';
       const savedRide = await ride.save();
-      const rideData = {
-        ...savedRide,
-        _id: savedRide.id,
-        fare: savedRide.final_fare ?? 0,
-      };
+      const rideData = buildRideResponse(savedRide);
       try {
         const io = getIO();
         const activeStatuses = ['accepted', 'in_progress', 'In_progress', 'arrived'];
@@ -119,6 +153,12 @@ export const requestRide = async (req: Request, res: Response) => {
           // Skip drivers already on an active ride
           const busy = await Ride.findOne({ driver_ref: driverId, status: { $in: activeStatuses } });
           if (busy) continue;
+          const driverRow = await query(
+            `SELECT is_online FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
+            [driverId]
+          );
+          const isOnline = (driverRow.rows[0]?.is_online ?? '').toString().toLowerCase() === 'online';
+          if (!isOnline) continue;
           io.to(socketId).emit('new_ride_offer', { ride: rideData });
           sent++;
         }

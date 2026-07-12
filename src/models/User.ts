@@ -67,9 +67,12 @@ export default class User {
   }
 
   private toDbRow() {
+    const id = this.id || crypto.randomUUID();
     const coordinates = this.location?.coordinates || [0, 0];
 
     return {
+      id,
+      uid: this.uid || this.email || this.phone_number || id,
       email: this.email || null,
       password: this.password || '',
       name: this.display_name || '',

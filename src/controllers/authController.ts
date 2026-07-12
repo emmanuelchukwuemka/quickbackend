@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import User from '../models/User';
 import Driver from '../models/Driver';
 import Otp from '../models/Otp';
+import { otpFallbackDisplayName } from '../utils/displayName';
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
@@ -12,6 +13,9 @@ const generateToken = (id: string) => {
 const generateOtpCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 import { sendEmail } from '../utils/mailer';
+
+const shouldExposeDebugOtp = () =>
+  process.env.NODE_ENV !== 'production' || process.env.OTP_DEBUG === 'true';
 
 export const requestOtp = async (req: Request, res: Response) => {
   try {
@@ -25,12 +29,16 @@ export const requestOtp = async (req: Request, res: Response) => {
       sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`)
         .then(() => console.log(`[mailer] OTP delivered to ${email}`))
         .catch((e: any) => console.error('[mailer] delivery failed:', e.message));
-      res.json({ message: 'OTP sent to email', debug_otp: code });
+      const payload: Record<string, string> = { message: 'OTP sent to email' };
+      if (shouldExposeDebugOtp()) payload.debug_otp = code;
+      res.json(payload);
       return;
     } else if (phone_number) {
       const otp = new Otp({ phone_number, code });
       await otp.save();
-      return res.json({ message: 'OTP sent successfully to phone', debug_otp: code });
+      const payload: Record<string, string> = { message: 'OTP sent successfully to phone' };
+      if (shouldExposeDebugOtp()) payload.debug_otp = code;
+      return res.json(payload);
     } else {
       return res.status(400).json({ message: 'Email or phone number is required' });
     }
@@ -62,7 +70,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
           email,
           uid: phone_number || email || crypto.randomUUID(),
           role: 'driver',
-          display_name: email || phone_number || 'Driver',
+          display_name: otpFallbackDisplayName('driver', phone_number),
         });
         await account.save();
       }
@@ -73,7 +81,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
           phone_number,
           email,
           uid: phone_number || email || crypto.randomUUID(),
-          display_name: email || phone_number || 'Passenger',
+          display_name: otpFallbackDisplayName('passenger', phone_number),
         });
         await account.save();
       }

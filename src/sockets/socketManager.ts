@@ -21,6 +21,26 @@ export const getIO = () => {
 export const getUserSocket = (userId: string) => userSockets.get(userId);
 export const getDriverSocket = (driverId: string) => driverSockets.get(driverId);
 
+const cancelSearchingRidesForPassenger = async (passengerId: string, io: Server) => {
+  const searchingRides = await Ride.find({
+    passenger_ref: passengerId,
+    status: { $in: ['searching', 'requested', 'Pending'] },
+  });
+
+  for (const ride of searchingRides) {
+    const cancelled = await Ride.findByIdAndUpdate(
+      ride.id!,
+      { status: 'Cancelled', cancelled_at: new Date() },
+      { new: true }
+    );
+    if (!cancelled) continue;
+
+    for (const [, socketId] of driverSockets.entries()) {
+      io.to(socketId).emit('ride_cancelled', { rideId: cancelled.id });
+    }
+  }
+};
+
 export const initSockets = (io: Server) => {
   ioInstance = io;
 
@@ -109,11 +129,20 @@ export const initSockets = (io: Server) => {
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
       // Remove from maps if exists
+      const disconnectedPassengerIds: string[] = [];
       for (const [key, value] of userSockets.entries()) {
-        if (value === socket.id) userSockets.delete(key);
+        if (value === socket.id) {
+          userSockets.delete(key);
+          disconnectedPassengerIds.push(key);
+        }
       }
       for (const [key, value] of driverSockets.entries()) {
         if (value === socket.id) driverSockets.delete(key);
+      }
+      for (const passengerId of disconnectedPassengerIds) {
+        cancelSearchingRidesForPassenger(passengerId, io).catch((err) => {
+          console.error('[Socket] Failed to cancel searching rides for disconnected passenger:', err);
+        });
       }
     });
   });

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { query } from '../db';
 import { v4 as uuid } from 'uuid';
 import { calculateDistanceKm, calculateRideFare } from '../utils/fare';
+import { sanitizeDisplayName } from '../utils/displayName';
 
 const router = Router();
 
@@ -26,7 +27,12 @@ router.get('/', async (req: Request, res: Response) => {
     }
     sql += ' ORDER BY sr.scheduled_time ASC';
     const result = await query(sql, params);
-    res.json(result.rows);
+    res.json(
+      result.rows.map((row) => ({
+        ...row,
+        passenger_name: sanitizeDisplayName(row.passenger_name),
+      }))
+    );
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
