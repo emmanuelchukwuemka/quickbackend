@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { query } from '../db';
+import { getColumnDataType, query } from '../db';
 import { buildWhere, buildUpdateSet } from './queryHelper';
 
 export interface IUser {
@@ -66,13 +66,13 @@ export default class User {
     this.location = data.location;
   }
 
-  private toDbRow() {
-    const id = this.id || crypto.randomUUID();
+  private toDbRow(includeId: boolean) {
+    const generatedId = this.id || crypto.randomUUID();
     const coordinates = this.location?.coordinates || [0, 0];
 
     return {
-      id,
-      uid: this.uid || this.email || this.phone_number || id,
+      ...(includeId ? { id: generatedId } : {}),
+      uid: this.uid || this.email || this.phone_number || generatedId,
       email: this.email || null,
       password: this.password || '',
       name: this.display_name || '',
@@ -156,7 +156,12 @@ export default class User {
   }
 
   async save() {
-    const row = this.toDbRow();
+    const idColumnType = await getColumnDataType('users', 'id');
+    const shouldIncludeId =
+      idColumnType !== 'bigint' &&
+      idColumnType !== 'integer' &&
+      idColumnType !== 'smallint';
+    const row = this.toDbRow(shouldIncludeId);
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
     const values = Object.values(row);

@@ -3,10 +3,32 @@ import { Pool } from 'pg';
 const rawUrl = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/quick_backend';
 
 export let pool: Pool;
+const columnTypeCache = new Map<string, string | null>();
 
 export const query = async (text: string, params: any[] = []) => {
   const result = await pool.query(text, params);
   return result;
+};
+
+export const getColumnDataType = async (tableName: string, columnName: string) => {
+  const cacheKey = `${tableName}.${columnName}`;
+  if (columnTypeCache.has(cacheKey)) {
+    return columnTypeCache.get(cacheKey) ?? null;
+  }
+
+  const result = await query(
+    `SELECT data_type
+       FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = $1
+        AND column_name = $2
+      LIMIT 1`,
+    [tableName, columnName]
+  );
+
+  const dataType = result.rows[0]?.data_type ?? null;
+  columnTypeCache.set(cacheKey, dataType);
+  return dataType;
 };
 
 const run = async (sql: string, label: string) => {
