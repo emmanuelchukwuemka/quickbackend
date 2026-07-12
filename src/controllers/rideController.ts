@@ -3,6 +3,7 @@ import Ride from '../models/Ride';
 import { query } from '../db';
 import { getIO, driverSockets, getUserSocket } from '../sockets/socketManager';
 import { sendPushToTokens } from '../firebase';
+import { calculateRideFare } from '../utils/fare';
 
 export const getRideById = async (req: Request, res: Response) => {
   try {
@@ -14,8 +15,8 @@ export const getRideById = async (req: Request, res: Response) => {
               d.display_name AS driver_name,    d.phone_number AS driver_phone,
               d.driver_rating AS driver_rating
        FROM rides r
-       LEFT JOIN users   u ON r.passenger_ref = u.uid
-       LEFT JOIN drivers d ON r.driver_ref    = d.uid
+       LEFT JOIN users   u ON (r.passenger_ref = u.id::text OR r.passenger_ref = u.uid)
+       LEFT JOIN drivers d ON (r.driver_ref    = d.id::text OR r.driver_ref    = d.uid)
        WHERE r.id = $1 LIMIT 1`,
       [id]
     );
@@ -97,12 +98,19 @@ export const requestRide = async (req: Request, res: Response) => {
     // Store address strings if provided by the client
     ridePayload.pickup_address = req.body.pickupAddress || req.body.pickup_address || '';
     ridePayload.dropoff_address = req.body.dropoffAddress || req.body.dropoff_address || '';
+    ridePayload.distanceKm = Number(req.body.distanceKm ?? req.body.distance_km ?? 0) || 0;
+    ridePayload.ride_type = (req.body.ride_type || ridePayload.ride_type || 'standard').toString();
+    ridePayload.final_fare = calculateRideFare(ridePayload.distanceKm, ridePayload.ride_type);
 
     const saveRideAndBroadcast = async (payload: any) => {
       const ride = new Ride(payload);
       ride.status = 'searching';
       const savedRide = await ride.save();
-      const rideData = { ...savedRide, _id: savedRide.id };
+      const rideData = {
+        ...savedRide,
+        _id: savedRide.id,
+        fare: savedRide.final_fare ?? 0,
+      };
       try {
         const io = getIO();
         const activeStatuses = ['accepted', 'in_progress', 'In_progress', 'arrived'];

@@ -3,11 +3,11 @@ import { getAllDrivers, getDriverById, createDriver, updateDriver, uploadDocumen
 
 const router = Router();
 
+router.put('/fcm-token', saveFcmToken);
 router.get('/', getAllDrivers);
 router.get('/:id', getDriverById);
 router.post('/', createDriver);
 router.put('/:id', updateDriver);
 router.post('/:id/documents', uploadDocuments);
-router.put('/fcm-token', saveFcmToken);
 
 export default router;

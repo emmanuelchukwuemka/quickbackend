@@ -25,12 +25,12 @@ export const requestOtp = async (req: Request, res: Response) => {
       sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`)
         .then(() => console.log(`[mailer] OTP delivered to ${email}`))
         .catch((e: any) => console.error('[mailer] delivery failed:', e.message));
-      res.json({ message: 'OTP sent to email' });
+      res.json({ message: 'OTP sent to email', debug_otp: code });
       return;
     } else if (phone_number) {
       const otp = new Otp({ phone_number, code });
       await otp.save();
-      return res.json({ message: 'OTP sent successfully to phone' });
+      return res.json({ message: 'OTP sent successfully to phone', debug_otp: code });
     } else {
       return res.status(400).json({ message: 'Email or phone number is required' });
     }
@@ -51,14 +51,39 @@ export const verifyOtp = async (req: Request, res: Response) => {
     const otp = await Otp.findOne(condition);
     if (!otp) return res.status(400).json({ message: 'Invalid or expired OTP' });
     
-    let user = email ? await User.findOne({ email }) : await User.findOne({ phone_number });
-    if (!user) {
-      user = new User({ phone_number, email, uid: phone_number || email });
-      await user.save();
+    const requestedRole = role === 'driver' ? 'driver' : 'passenger';
+    let account: any;
+
+    if (requestedRole === 'driver') {
+      account = email ? await Driver.findOne({ email }) : await Driver.findOne({ phone_number });
+      if (!account) {
+        account = new Driver({
+          phone_number,
+          email,
+          uid: phone_number || email || crypto.randomUUID(),
+          role: 'driver',
+          display_name: email || phone_number || 'Driver',
+        });
+        await account.save();
+      }
+    } else {
+      account = email ? await User.findOne({ email }) : await User.findOne({ phone_number });
+      if (!account) {
+        account = new User({
+          phone_number,
+          email,
+          uid: phone_number || email || crypto.randomUUID(),
+          display_name: email || phone_number || 'Passenger',
+        });
+        await account.save();
+      }
     }
     await Otp.deleteOne({ id: otp.id });
-    const token = generateToken(user.id!);
-    res.json({ user, token, role: role || 'passenger' });
+    const token = generateToken(account.id!);
+    if (requestedRole === 'driver') {
+      return res.json({ driver: account, token, role: 'driver' });
+    }
+    res.json({ user: account, token, role: 'passenger' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -101,8 +126,11 @@ export const userSignup = async (req: Request, res: Response) => {
 
 export const userLogin = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const identifier = req.body.email || req.body.phone_number;
+    const password = req.body.password;
+    const user = (identifier && identifier.includes('@'))
+      ? await User.findOne({ email: identifier })
+      : await User.findOne({ phone_number: identifier });
     if (!user || user.password !== password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -150,8 +178,11 @@ export const driverSignup = async (req: Request, res: Response) => {
 
 export const driverLogin = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    const driver = await Driver.findOne({ email });
+    const identifier = req.body.email || req.body.phone_number;
+    const password = req.body.password;
+    const driver = (identifier && identifier.includes('@'))
+      ? await Driver.findOne({ email: identifier })
+      : await Driver.findOne({ phone_number: identifier });
     if (!driver || driver.password !== password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }

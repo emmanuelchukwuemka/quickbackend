@@ -210,7 +210,14 @@ export const initDb = async () => {
       estimated_fare NUMERIC(12,2) DEFAULT 0,
       scheduled_time TIMESTAMPTZ,
       status TEXT DEFAULT 'Pending',
+      driver_ref TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `, 'create scheduled_rides');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS driver_ref TEXT;`, 'add driver_ref to scheduled_rides');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS pickup_lat DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.pickup_lat');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS pickup_lng DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.pickup_lng');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS dropoff_lat DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.dropoff_lat');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS dropoff_lng DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.dropoff_lng');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS ride_ref TEXT;`, 'add scheduled_rides.ride_ref');
 };

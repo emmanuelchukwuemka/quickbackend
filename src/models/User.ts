@@ -162,4 +162,9 @@ export default class User {
     Object.assign(this, saved);
     return saved;
   }
+
+  toJSON() {
+    const { password, ...safeUser } = this;
+    return safeUser;
+  }
 }

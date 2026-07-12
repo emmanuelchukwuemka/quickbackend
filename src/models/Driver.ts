@@ -161,4 +161,9 @@ export default class Driver {
     Object.assign(this, saved);
     return saved;
   }
+
+  toJSON() {
+    const { password, ...safeDriver } = this;
+    return safeDriver;
+  }
 }

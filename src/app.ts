@@ -20,6 +20,30 @@ import RideOption from './models/RideOption';
 
 const app: Application = express();
 
+const defaultCities = [
+  { location_name: 'San Francisco, CA', Latlng: { lat: 37.7749, lng: -122.4194 } },
+  { location_name: 'Los Angeles, CA', Latlng: { lat: 34.0522, lng: -118.2437 } },
+  { location_name: 'New York, NY', Latlng: { lat: 40.7128, lng: -74.0060 } },
+];
+
+const defaultRideOptions = [
+  { Type: 'Standard', price: '25.00', features: '4 seats', numbersofseats: '4' },
+  { Type: 'Premium', price: '45.00', features: 'Luxury, 4 seats', numbersofseats: '4' },
+  { Type: 'XL', price: '35.00', features: '6 seats', numbersofseats: '6' },
+];
+
+const ensureReferenceData = async () => {
+  const cities = await City.find({});
+  if (!cities.length) {
+    await City.insertMany(defaultCities);
+  }
+
+  const rideOptions = await RideOption.find({});
+  if (!rideOptions.length) {
+    await RideOption.insertMany(defaultRideOptions);
+  }
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -83,6 +107,7 @@ app.get('/api/rideOptions', async (req: Request, res: Response) => {
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { initSockets } from './sockets/socketManager';
+import { dispatchScheduledRides } from './utils/scheduledRideDispatcher';
 
 const PORT = process.env.PORT || 5000;
 const server = createServer(app);
@@ -97,13 +122,23 @@ initSockets(io);
 const connectDB = async () => {
   try {
     await initDb();
+    await ensureReferenceData();
     // Add fcm_token column if it doesn't exist (idempotent migration)
     try {
       const { query } = await import('./db');
       await query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS fcm_token VARCHAR DEFAULT ''`);
     } catch (e) { /* column may already exist */ }
     console.log('Connected to PostgreSQL');
-    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+
+      // Run immediately to catch any rides that became due while server was down
+      setTimeout(dispatchScheduledRides, 5000);
+
+      // Then check every 60 seconds
+      setInterval(dispatchScheduledRides, 60 * 1000);
+      console.log('[Scheduler] Scheduled ride dispatcher started (every 60s)');
+    });
   } catch (err) {
     console.error('Failed to connect to PostgreSQL', err);
   }
