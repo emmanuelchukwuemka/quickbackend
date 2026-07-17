@@ -23,6 +23,7 @@ export interface IUser {
     type: 'Point';
     coordinates: number[];
   };
+  fcm_token?: string;
 }
 
 export default class User {
@@ -44,6 +45,7 @@ export default class User {
   numbe_trips?: number;
   User_CurrentLocation?: string;
   location?: { type: 'Point'; coordinates: number[] };
+  fcm_token?: string;
 
   constructor(data: Partial<IUser> & { id?: string } = {}) {
     this.id = data.id;
@@ -64,6 +66,7 @@ export default class User {
     this.dob = data.dob;
     this.gender = data.gender;
     this.location = data.location;
+    this.fcm_token = data.fcm_token;
   }
 
   private toDbRow(includeId: boolean) {
@@ -90,6 +93,7 @@ export default class User {
       gender: this.gender || '',
       lat: coordinates[1] ?? 0,
       lng: coordinates[0] ?? 0,
+      fcm_token: this.fcm_token || '',
     };
   }
 
@@ -113,6 +117,7 @@ export default class User {
       dob: row.dob ?? undefined,
       gender: row.gender ?? undefined,
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
+      fcm_token: row.fcm_token ?? undefined,
     });
   }
 

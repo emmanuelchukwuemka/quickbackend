@@ -25,6 +25,10 @@ router.get('/', async (req: Request, res: Response) => {
       params.push((status as string).toLowerCase());
       sql += ` AND LOWER(sr.status) = $${params.length}`;
     }
+    // Filter out pending scheduled rides that have already passed
+    if (status && (status as string).toLowerCase() === 'pending') {
+      sql += ` AND sr.scheduled_time >= NOW()`;
+    }
     sql += ' ORDER BY sr.scheduled_time ASC';
     const result = await query(sql, params);
     res.json(
@@ -55,6 +59,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (!scheduled_time) {
       return res.status(400).json({ message: 'scheduled_time is required' });
+    }
+
+    // Validate that the scheduled time is not in the past (allow 1 minute grace period for latency)
+    const schedDate = new Date(scheduled_time);
+    if (schedDate.getTime() < Date.now() - 60000) {
+      return res.status(400).json({ message: 'Cannot schedule a ride in the past.' });
     }
 
     const safePickupLat = Number(pickup_lat) || 0;

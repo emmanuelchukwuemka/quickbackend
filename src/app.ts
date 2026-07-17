@@ -108,6 +108,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { initSockets } from './sockets/socketManager';
 import { dispatchScheduledRides } from './utils/scheduledRideDispatcher';
+import { sendScheduledRideReminders } from './utils/scheduledRideReminders';
 
 const PORT = process.env.PORT || 5000;
 const server = createServer(app);
@@ -134,10 +135,12 @@ const connectDB = async () => {
 
       // Run immediately to catch any rides that became due while server was down
       setTimeout(dispatchScheduledRides, 5000);
+      setTimeout(sendScheduledRideReminders, 8000);
 
       // Then check every 60 seconds
       setInterval(dispatchScheduledRides, 60 * 1000);
-      console.log('[Scheduler] Scheduled ride dispatcher started (every 60s)');
+      setInterval(sendScheduledRideReminders, 60 * 1000);
+      console.log('[Scheduler] Scheduled ride dispatcher and reminders checks started (every 60s)');
     });
   } catch (err) {
     console.error('Failed to connect to PostgreSQL', err);

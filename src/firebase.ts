@@ -37,7 +37,20 @@ export async function sendPushToTokens(
       tokens: valid,
       notification: { title, body },
       data,
-      android: { priority: 'high' },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            contentAvailable: true,
+          }
+        }
+      }
     });
     console.log(`[FCM] sent ${response.successCount}/${valid.length} messages`);
   } catch (e) {

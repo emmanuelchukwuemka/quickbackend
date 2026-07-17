@@ -242,4 +242,10 @@ export const initDb = async () => {
   await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS dropoff_lat DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.dropoff_lat');
   await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS dropoff_lng DOUBLE PRECISION DEFAULT 0;`, 'add scheduled_rides.dropoff_lng');
   await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS ride_ref TEXT;`, 'add scheduled_rides.ride_ref');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS reminded_20m BOOLEAN DEFAULT FALSE;`, 'add scheduled_rides.reminded_20m');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS reminded_10m BOOLEAN DEFAULT FALSE;`, 'add scheduled_rides.reminded_10m');
+  await run(`ALTER TABLE scheduled_rides ADD COLUMN IF NOT EXISTS reminded_5m BOOLEAN DEFAULT FALSE;`, 'add scheduled_rides.reminded_5m');
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR DEFAULT '';`, 'add users.fcm_token');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS car_model VARCHAR DEFAULT '';`, 'add drivers.car_model');
+  await run(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS car_plate VARCHAR DEFAULT '';`, 'add drivers.car_plate');
 };

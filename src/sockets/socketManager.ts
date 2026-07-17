@@ -104,7 +104,7 @@ export const initSockets = (io: Server) => {
     });
 
     // In-app chat relay — forward message to the other party in the ride
-    socket.on('chat_message', (data: {
+    socket.on('chat_message', async (data: {
       rideId: string;
       toId: string;
       toRole: 'driver' | 'passenger';
@@ -120,6 +120,43 @@ export const initSockets = (io: Server) => {
         if (targetSocketId) {
           io.to(targetSocketId).emit('chat_message', data);
           console.log(`[Socket] Chat relayed to ${data.toRole} ${data.toId}`);
+        }
+
+        // Send FCM push notification so it pops up as alert
+        try {
+          const { query } = await import('../db');
+          const { sendPushToTokens } = await import('../firebase');
+          
+          let fcmToken = '';
+          if (data.toRole === 'driver') {
+            const row = await query(
+              "SELECT fcm_token FROM drivers WHERE uid = $1 OR id::text = $2 LIMIT 1",
+              [data.toId, data.toId]
+            );
+            fcmToken = row.rows[0]?.fcm_token;
+          } else {
+            const row = await query(
+              "SELECT fcm_token FROM users WHERE uid = $1 OR id::text = $2 LIMIT 1",
+              [data.toId, data.toId]
+            );
+            fcmToken = row.rows[0]?.fcm_token;
+          }
+
+          if (fcmToken) {
+            await sendPushToTokens(
+              [fcmToken],
+              data.senderName,
+              data.message,
+              {
+                rideId: data.rideId,
+                type: 'chat_message',
+                message: data.message,
+                senderName: data.senderName,
+              }
+            );
+          }
+        } catch (fcmErr) {
+          console.warn('[Socket] FCM push chat relay error:', fcmErr);
         }
       } catch (err) {
         console.error('[Socket] chat_message error:', err);

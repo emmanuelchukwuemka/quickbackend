@@ -90,6 +90,28 @@ export const arriveRide = async (req: Request, res: Response) => {
         getIO().to(passengerSocketId).emit('driver_arrived', { rideId: id });
       }
     } catch (_) {}
+
+    // FCM push notification to passenger
+    try {
+      if (ride.passenger_ref) {
+        const passengerRow = await query(
+          `SELECT fcm_token FROM users WHERE id::text = $1 OR uid = $1 LIMIT 1`,
+          [ride.passenger_ref.toString()]
+        );
+        const fcmToken = passengerRow.rows[0]?.fcm_token;
+        if (fcmToken) {
+          await sendPushToTokens(
+            [fcmToken],
+            'Driver Arrived!',
+            'Your driver has arrived at your location.',
+            { rideId: id, type: 'driver_arrived' }
+          );
+        }
+      }
+    } catch (fcmErr) {
+      console.warn('[FCM] arriveRide push error:', fcmErr);
+    }
+
     res.json({ ride: { ...ride, _id: ride.id } });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -225,6 +247,27 @@ export const acceptRide = async (req: Request, res: Response) => {
       }
     } catch (socketErr) {
       console.warn('[Socket] Could not emit ride_accepted:', socketErr);
+    }
+
+    // FCM push notification to passenger
+    try {
+      if (ride.passenger_ref) {
+        const passengerRow = await query(
+          `SELECT fcm_token FROM users WHERE id::text = $1 OR uid = $1 LIMIT 1`,
+          [ride.passenger_ref.toString()]
+        );
+        const fcmToken = passengerRow.rows[0]?.fcm_token;
+        if (fcmToken) {
+          await sendPushToTokens(
+            [fcmToken],
+            'Driver Found!',
+            'Your driver has accepted the ride and is on the way.',
+            { rideId: id, type: 'ride_accepted' }
+          );
+        }
+      }
+    } catch (fcmErr) {
+      console.warn('[FCM] acceptRide push error:', fcmErr);
     }
 
     res.json({ ride: { ...ride, _id: ride.id } });

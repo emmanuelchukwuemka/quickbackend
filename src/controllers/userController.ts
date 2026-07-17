@@ -49,3 +49,17 @@ export const updateUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const saveFcmToken = async (req: Request, res: Response) => {
+  try {
+    const { user_uid, fcm_token } = req.body;
+    if (!user_uid || !fcm_token) {
+      return res.status(400).json({ message: 'user_uid and fcm_token are required' });
+    }
+    const { query } = await import('../db');
+    await query(`UPDATE users SET fcm_token = $1 WHERE uid = $2`, [fcm_token, user_uid]);
+    res.json({ message: 'FCM token saved' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

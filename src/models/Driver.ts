@@ -22,6 +22,8 @@ export interface IDriver {
     type: 'Point';
     coordinates: number[];
   };
+  car_model?: string;
+  car_plate?: string;
 }
 
 export default class Driver {
@@ -42,6 +44,8 @@ export default class Driver {
   driver_rating?: number;
   wallet_balance?: number;
   location?: { type: 'Point'; coordinates: number[] };
+  car_model?: string;
+  car_plate?: string;
 
   constructor(data: Partial<IDriver> & { id?: string } = {}) {
     this.id = data.id;
@@ -61,6 +65,8 @@ export default class Driver {
     this.driver_rating = data.driver_rating ?? 0;
     this.wallet_balance = data.wallet_balance ?? 0;
     this.location = data.location;
+    this.car_model = data.car_model;
+    this.car_plate = data.car_plate;
   }
 
   private toDbRow(includeId: boolean) {
@@ -87,6 +93,8 @@ export default class Driver {
       wallet_balance: this.wallet_balance ?? 0,
       lat: coordinates[1] ?? 0,
       lng: coordinates[0] ?? 0,
+      car_model: this.car_model || '',
+      car_plate: this.car_plate || '',
     };
   }
 
@@ -109,6 +117,8 @@ export default class Driver {
       driver_rating: Number(row.driver_rating),
       wallet_balance: Number(row.wallet_balance),
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
+      car_model: row.car_model ?? '',
+      car_plate: row.car_plate ?? '',
     });
   }
 
@@ -169,6 +179,14 @@ export default class Driver {
 
   toJSON() {
     const { password, ...safeDriver } = this;
-    return safeDriver;
+    return {
+      ...safeDriver,
+      vehicle_model: this.car_model,
+      car_model: this.car_model,
+      vehicle: this.car_model,
+      plate_number: this.car_plate,
+      license_plate: this.car_plate,
+      vehicle_plate: this.car_plate,
+    };
   }
 }
