@@ -9,7 +9,7 @@ const router = Router();
 // GET /api/scheduled-rides?status=Pending&passenger_ref=xxx
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { passenger_ref, status } = req.query;
+    const { passenger_ref, status, driver_ref } = req.query;
     let sql = `
       SELECT sr.*, u.display_name AS passenger_name, u.phone_number AS passenger_phone
       FROM scheduled_rides sr
@@ -24,6 +24,10 @@ router.get('/', async (req: Request, res: Response) => {
     if (status) {
       params.push((status as string).toLowerCase());
       sql += ` AND LOWER(sr.status) = $${params.length}`;
+    }
+    if (driver_ref) {
+      params.push(driver_ref);
+      sql += ` AND sr.driver_ref = $${params.length}`;
     }
     // Filter out pending scheduled rides that have already passed
     if (status && (status as string).toLowerCase() === 'pending') {
