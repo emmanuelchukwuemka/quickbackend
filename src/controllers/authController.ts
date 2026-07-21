@@ -61,10 +61,12 @@ export const verifyOtp = async (req: Request, res: Response) => {
     
     const requestedRole = role === 'driver' ? 'driver' : 'passenger';
     let account: any;
+    let isNew = false;
 
     if (requestedRole === 'driver') {
       account = email ? await Driver.findOne({ email }) : await Driver.findOne({ phone_number });
       if (!account) {
+        isNew = true;
         account = new Driver({
           phone_number,
           email,
@@ -77,6 +79,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
     } else {
       account = email ? await User.findOne({ email }) : await User.findOne({ phone_number });
       if (!account) {
+        isNew = true;
         account = new User({
           phone_number,
           email,
@@ -89,9 +92,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
     await Otp.deleteOne({ id: otp.id });
     const token = generateToken(account.id!);
     if (requestedRole === 'driver') {
-      return res.json({ driver: account, token, role: 'driver' });
+      return res.json({ driver: account, token, role: 'driver', is_new: isNew });
     }
-    res.json({ user: account, token, role: 'passenger' });
+    res.json({ user: account, token, role: 'passenger', is_new: isNew });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
