@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Ride from '../models/Ride';
 import { query } from '../db';
-import { getIO, driverSockets, getUserSocket } from '../sockets/socketManager';
+import { getIO, driverSockets, getUserSocket, getDriverSocket } from '../sockets/socketManager';
 import { sendPushToTokens } from '../firebase';
 import { calculateRideFare } from '../utils/fare';
 import { calculateDistanceAndETA } from '../utils/mapsService';
@@ -286,6 +286,14 @@ export const startRide = async (req: Request, res: Response) => {
     if (passengerSocketId) {
       getIO().to(passengerSocketId).emit('ride_started', { ride: { ...ride, _id: ride.id } });
     }
+    // Either side can start the trip — notify the driver too so their screen
+    // advances regardless of who tapped the button.
+    if (ride.driver_ref) {
+      const driverSocketId = getDriverSocket(ride.driver_ref.toString());
+      if (driverSocketId) {
+        getIO().to(driverSocketId).emit('ride_started', { ride: { ...ride, _id: ride.id } });
+      }
+    }
 
     res.json({ ride });
   } catch (error: any) {
@@ -302,6 +310,14 @@ export const completeRide = async (req: Request, res: Response) => {
     const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
     if (passengerSocketId) {
       getIO().to(passengerSocketId).emit('ride_completed', { ride: { ...ride, _id: ride.id } });
+    }
+    // Either side (driver or passenger) can end the trip — notify the driver
+    // too so their screen advances regardless of who completed it.
+    if (ride.driver_ref) {
+      const driverSocketId = getDriverSocket(ride.driver_ref.toString());
+      if (driverSocketId) {
+        getIO().to(driverSocketId).emit('ride_completed', { ride: { ...ride, _id: ride.id } });
+      }
     }
 
     res.json({ ride });
