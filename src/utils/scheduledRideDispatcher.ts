@@ -1,9 +1,52 @@
 import { query } from '../db';
 import Ride from '../models/Ride';
-import { getIO, driverSockets } from '../sockets/socketManager';
+import { getIO, driverSockets, getUserSocket, getDriverSocket } from '../sockets/socketManager';
 import { sendPushToTokens } from '../firebase';
 
+// Build a ride payload matching what requestRide creates
+function buildRidePayload(sr: any, extra: Record<string, any> = {}) {
+  const ridePayload: any = {
+    passenger_ref: sr.passenger_ref || null,
+    pickup_address: sr.pickup_address || '',
+    dropoff_address: sr.dropoff_address || '',
+    final_fare: Number(sr.estimated_fare) || 0,
+    ride_type: 'scheduled',
+    requested_at: new Date(),
+    ...extra,
+  };
+
+  if (sr.pickup_lat && sr.pickup_lng) {
+    ridePayload.pickup = {
+      type: 'Point',
+      coordinates: [Number(sr.pickup_lng), Number(sr.pickup_lat)],
+      lat: Number(sr.pickup_lat),
+      lng: Number(sr.pickup_lng),
+    };
+    ridePayload.pickup_lat = Number(sr.pickup_lat);
+    ridePayload.pickup_lng = Number(sr.pickup_lng);
+  }
+  if (sr.dropoff_lat && sr.dropoff_lng) {
+    ridePayload.dropoff = {
+      type: 'Point',
+      coordinates: [Number(sr.dropoff_lng), Number(sr.dropoff_lat)],
+      lat: Number(sr.dropoff_lat),
+      lng: Number(sr.dropoff_lng),
+    };
+    ridePayload.dropoff_lat = Number(sr.dropoff_lat);
+    ridePayload.dropoff_lng = Number(sr.dropoff_lng);
+  }
+
+  return ridePayload;
+}
+
 export const dispatchScheduledRides = async () => {
+  await dispatchOpenScheduledRides();
+  await dispatchPreAcceptedScheduledRides();
+};
+
+// Scheduled rides nobody accepted ahead of time — open them up to any
+// available driver, same as a normal ride request.
+const dispatchOpenScheduledRides = async () => {
   try {
     // Atomically mark due rides as 'Dispatching' so concurrent runs never double-dispatch
     const due = await query(
@@ -17,44 +60,11 @@ export const dispatchScheduledRides = async () => {
 
     if (!due.rowCount || due.rowCount === 0) return;
 
-    console.log(`[Scheduler] Dispatching ${due.rowCount} scheduled ride(s)`);
+    console.log(`[Scheduler] Dispatching ${due.rowCount} open scheduled ride(s)`);
 
     for (const sr of due.rows) {
       try {
-        // Build a ride payload matching what requestRide creates
-        const ridePayload: any = {
-          passenger_ref: sr.passenger_ref || null,
-          pickup_address: sr.pickup_address || '',
-          dropoff_address: sr.dropoff_address || '',
-          final_fare: Number(sr.estimated_fare) || 0,
-          status: 'searching',
-          ride_type: 'scheduled',
-          requested_at: new Date(),
-        };
-
-        // Include coordinates if stored
-        if (sr.pickup_lat && sr.pickup_lng) {
-          ridePayload.pickup = {
-            type: 'Point',
-            coordinates: [Number(sr.pickup_lng), Number(sr.pickup_lat)],
-            lat: Number(sr.pickup_lat),
-            lng: Number(sr.pickup_lng),
-          };
-          ridePayload.pickup_lat = Number(sr.pickup_lat);
-          ridePayload.pickup_lng = Number(sr.pickup_lng);
-        }
-        if (sr.dropoff_lat && sr.dropoff_lng) {
-          ridePayload.dropoff = {
-            type: 'Point',
-            coordinates: [Number(sr.dropoff_lng), Number(sr.dropoff_lat)],
-            lat: Number(sr.dropoff_lat),
-            lng: Number(sr.dropoff_lng),
-          };
-          ridePayload.dropoff_lat = Number(sr.dropoff_lat);
-          ridePayload.dropoff_lng = Number(sr.dropoff_lng);
-        }
-
-        const ride = new Ride(ridePayload);
+        const ride = new Ride(buildRidePayload(sr, { status: 'searching' }));
         const savedRide = await ride.save();
         const savedRideId = savedRide.id;
         if (!savedRideId) {
@@ -110,6 +120,106 @@ export const dispatchScheduledRides = async () => {
       }
     }
   } catch (err: any) {
-    console.error('[Scheduler] dispatchScheduledRides error:', err.message);
+    console.error('[Scheduler] dispatchOpenScheduledRides error:', err.message);
+  }
+};
+
+// Scheduled rides a driver already accepted ahead of time — hand the live
+// ride directly to that driver instead of broadcasting it to everyone.
+const dispatchPreAcceptedScheduledRides = async () => {
+  try {
+    const due = await query(
+      `UPDATE scheduled_rides
+       SET status = 'Dispatching'
+       WHERE LOWER(status) = 'accepted'
+         AND driver_ref IS NOT NULL
+         AND ride_ref IS NULL
+         AND scheduled_time <= NOW() + INTERVAL '1 minute'
+         AND scheduled_time >= NOW() - INTERVAL '60 minutes'
+       RETURNING *`
+    );
+
+    if (!due.rowCount || due.rowCount === 0) return;
+
+    console.log(`[Scheduler] Dispatching ${due.rowCount} pre-accepted scheduled ride(s)`);
+
+    for (const sr of due.rows) {
+      try {
+        const ride = new Ride(buildRidePayload(sr, {
+          status: 'accepted',
+          driver_ref: sr.driver_ref,
+          accepted_at: new Date(),
+        }));
+        const savedRide = await ride.save();
+        const savedRideId = savedRide.id;
+        if (!savedRideId) {
+          throw new Error('Scheduled ride dispatch created a ride without an id');
+        }
+        const rideData = { ...savedRide, _id: savedRideId };
+
+        await query(
+          `UPDATE scheduled_rides SET status = 'Dispatched', ride_ref = $1 WHERE id = $2`,
+          [savedRideId, sr.id]
+        );
+
+        // Let the passenger know their driver is on the way, same as a normal accept
+        try {
+          const passengerSocketId = sr.passenger_ref ? getUserSocket(sr.passenger_ref.toString()) : undefined;
+          if (passengerSocketId) {
+            getIO().to(passengerSocketId).emit('ride_accepted', { ride: rideData, driver_ref: sr.driver_ref });
+          }
+        } catch (socketErr) {
+          console.warn('[Scheduler] Passenger socket emit error:', socketErr);
+        }
+
+        // Let the driver know their scheduled ride just went live (their
+        // dashboard's active-ride poll will also pick this up within ~12s)
+        try {
+          const driverSocketId = getDriverSocket(sr.driver_ref.toString());
+          if (driverSocketId) {
+            getIO().to(driverSocketId).emit('ride_accepted', { ride: rideData });
+          }
+        } catch (socketErr) {
+          console.warn('[Scheduler] Driver socket emit error:', socketErr);
+        }
+
+        try {
+          const [passengerRow, driverRow] = await Promise.all([
+            sr.passenger_ref
+              ? query(`SELECT fcm_token FROM users WHERE id::text = $1 OR uid = $1 LIMIT 1`, [sr.passenger_ref.toString()])
+              : null,
+            query(`SELECT fcm_token FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`, [sr.driver_ref.toString()]),
+          ]);
+          const passengerToken = passengerRow?.rows[0]?.fcm_token;
+          const driverToken = driverRow.rows[0]?.fcm_token;
+          if (passengerToken) {
+            await sendPushToTokens(
+              [passengerToken],
+              'Driver On The Way!',
+              'Your scheduled ride is starting — your driver is on the way.',
+              { rideId: savedRideId, type: 'ride_accepted' }
+            );
+          }
+          if (driverToken) {
+            await sendPushToTokens(
+              [driverToken],
+              'Scheduled Ride Starting',
+              `Pickup: ${sr.pickup_address || 'Your scheduled pickup'}`,
+              { rideId: savedRideId, type: 'ride_accepted' }
+            );
+          }
+        } catch (fcmErr) {
+          console.warn('[Scheduler] FCM push error:', fcmErr);
+        }
+
+        console.log(`[Scheduler] Pre-accepted scheduled ride ${sr.id} -> live ride ${savedRideId} for driver ${sr.driver_ref}`);
+      } catch (err: any) {
+        console.error(`[Scheduler] Error dispatching pre-accepted scheduled ride ${sr.id}:`, err.message);
+        // Revert so it can be retried on next tick
+        await query(`UPDATE scheduled_rides SET status = 'Accepted' WHERE id = $1`, [sr.id]);
+      }
+    }
+  } catch (err: any) {
+    console.error('[Scheduler] dispatchPreAcceptedScheduledRides error:', err.message);
   }
 };
