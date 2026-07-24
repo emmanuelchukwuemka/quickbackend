@@ -163,6 +163,85 @@ export const initSockets = (io: Server) => {
       }
     });
 
+    // In-app voice call signaling — this server only relays WebRTC
+    // offer/answer/ICE messages between the two parties, it never inspects
+    // or stores call content.
+    const getTargetSocket = (toId: string, toRole: 'driver' | 'passenger') =>
+      toRole === 'driver' ? driverSockets.get(toId) : userSockets.get(toId);
+
+    socket.on('call_offer', async (data: {
+      rideId: string;
+      callId: string;
+      toId: string;
+      toRole: 'driver' | 'passenger';
+      fromId: string;
+      fromRole: 'driver' | 'passenger';
+      fromName: string;
+      sdp: any;
+    }) => {
+      try {
+        const targetSocketId = getTargetSocket(data.toId, data.toRole);
+        if (!targetSocketId) {
+          socket.emit('call_unavailable', { callId: data.callId, toId: data.toId });
+          return;
+        }
+        io.to(targetSocketId).emit('call_offer', data);
+        console.log(`[Socket] call_offer relayed to ${data.toRole} ${data.toId}`);
+
+        // Wake the callee's app with a push if it's backgrounded
+        try {
+          const { query } = await import('../db');
+          const { sendPushToTokens } = await import('../firebase');
+          const table = data.toRole === 'driver' ? 'drivers' : 'users';
+          const row = await query(
+            `SELECT fcm_token FROM ${table} WHERE uid = $1 OR id::text = $2 LIMIT 1`,
+            [data.toId, data.toId]
+          );
+          const fcmToken = row.rows[0]?.fcm_token;
+          if (fcmToken) {
+            await sendPushToTokens(
+              [fcmToken],
+              `Incoming call from ${data.fromName}`,
+              'Tap to answer',
+              { rideId: data.rideId, callId: data.callId, type: 'incoming_call' }
+            );
+          }
+        } catch (fcmErr) {
+          console.warn('[Socket] FCM push call_offer error:', fcmErr);
+        }
+      } catch (err) {
+        console.error('[Socket] call_offer error:', err);
+      }
+    });
+
+    socket.on('call_answer', (data: {
+      callId: string; toId: string; toRole: 'driver' | 'passenger'; sdp: any;
+    }) => {
+      const targetSocketId = getTargetSocket(data.toId, data.toRole);
+      if (targetSocketId) io.to(targetSocketId).emit('call_answer', data);
+    });
+
+    socket.on('call_ice_candidate', (data: {
+      callId: string; toId: string; toRole: 'driver' | 'passenger'; candidate: any;
+    }) => {
+      const targetSocketId = getTargetSocket(data.toId, data.toRole);
+      if (targetSocketId) io.to(targetSocketId).emit('call_ice_candidate', data);
+    });
+
+    socket.on('call_reject', (data: {
+      callId: string; toId: string; toRole: 'driver' | 'passenger'; reason?: string;
+    }) => {
+      const targetSocketId = getTargetSocket(data.toId, data.toRole);
+      if (targetSocketId) io.to(targetSocketId).emit('call_reject', data);
+    });
+
+    socket.on('call_end', (data: {
+      callId: string; toId: string; toRole: 'driver' | 'passenger';
+    }) => {
+      const targetSocketId = getTargetSocket(data.toId, data.toRole);
+      if (targetSocketId) io.to(targetSocketId).emit('call_end', data);
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
       // Remove from maps if exists
