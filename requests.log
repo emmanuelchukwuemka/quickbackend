@@ -98,3 +98,11 @@
 2026-06-06T15:08:51.338Z GET /health undefined
 2026-06-06T15:13:04.515Z POST /api/upload undefined
 2026-06-06T15:17:04.970Z POST /api/upload undefined
+2026-07-21T00:09:19.668Z GET / undefined
+2026-07-21T00:09:25.851Z POST /api/auth/request-otp {"email":"test-isnew-check@example.com"}
+2026-07-21T00:09:37.028Z POST /api/auth/verify-otp {"email":"test-isnew-check@example.com","code":"590037","role":"passenger"}
+2026-07-21T00:11:06.020Z POST /api/auth/request-otp {"email":"test-isnew-check@example.com"}
+2026-07-21T00:11:14.823Z POST /api/auth/verify-otp {"email":"test-isnew-check@example.com","code":"433513","role":"passenger"}
+2026-07-21T00:11:25.386Z PUT /api/users/26 {"display_name":"Test McTestface","phone_number":"+15551234567"}
+2026-07-21T00:11:31.444Z PUT /api/users/fcm-token {"user_uid":"test-isnew-check@example.com","fcm_token":"test-fcm-token-abc123"}
+2026-07-21T00:11:42.206Z GET /api/users/26 undefined

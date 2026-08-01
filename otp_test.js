@@ -1,4 +1,4 @@
-const base = 'https://quick-backend-m19x.onrender.com';
+const base = 'https://www.quickdrop.ng';
 const phone = `+1750555${Math.floor(Math.random()*9000+1000)}`;
 
 (async () => {

@@ -83,9 +83,8 @@ export default class Payment {
     const { set, values } = buildUpdateSet(updates);
     if (!set) return null;
     values.push(id);
-    const result = await query(`UPDATE payments SET ${set} WHERE id = $${values.length} RETURNING *`, values);
-    if (!result.rowCount) return null;
-    return Payment.fromRow(result.rows[0]);
+    await query(`UPDATE payments SET ${set} WHERE id = $${values.length}`, values);
+    return Payment.findById(id);
   }
 
   static async deleteMany(condition: any = {}) {
@@ -103,9 +102,9 @@ export default class Payment {
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
     const values = Object.values(row);
-    const result = await query(`INSERT INTO payments (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`, values);
-    const saved = Payment.fromRow(result.rows[0]);
+    await query(`INSERT INTO payments (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const saved = await Payment.findById(row.id);
     Object.assign(this, saved);
-    return saved;
+    return saved!;
   }
 }

@@ -1,4 +1,4 @@
-const base = 'https://quick-backend-m19x.onrender.com';
+const base = 'https://www.quickdrop.ng';
 const random = Math.random().toString(36).substring(2, 10);
 
 const log = async (label, path, opts = {}) => {

@@ -48,17 +48,20 @@ export const dispatchScheduledRides = async () => {
 // available driver, same as a normal ride request.
 const dispatchOpenScheduledRides = async () => {
   try {
-    // Atomically mark due rides as 'Dispatching' so concurrent runs never double-dispatch
+    // Find due rides, then immediately mark them 'Dispatching' so this single
+    // background interval never double-processes the same row on the next tick.
     const due = await query(
-      `UPDATE scheduled_rides
-       SET status = 'Dispatching'
+      `SELECT * FROM scheduled_rides
        WHERE LOWER(status) = 'pending'
          AND scheduled_time <= NOW() + INTERVAL '1 minute'
-         AND scheduled_time >= NOW() - INTERVAL '60 minutes'
-       RETURNING *`
+         AND scheduled_time >= NOW() - INTERVAL '60 minutes'`
     );
 
     if (!due.rowCount || due.rowCount === 0) return;
+
+    const dueIds = due.rows.map((r: any) => r.id);
+    const idPlaceholders = dueIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
+    await query(`UPDATE scheduled_rides SET status = 'Dispatching' WHERE id IN (${idPlaceholders})`, dueIds);
 
     console.log(`[Scheduler] Dispatching ${due.rowCount} open scheduled ride(s)`);
 
@@ -129,17 +132,19 @@ const dispatchOpenScheduledRides = async () => {
 const dispatchPreAcceptedScheduledRides = async () => {
   try {
     const due = await query(
-      `UPDATE scheduled_rides
-       SET status = 'Dispatching'
+      `SELECT * FROM scheduled_rides
        WHERE LOWER(status) = 'accepted'
          AND driver_ref IS NOT NULL
          AND ride_ref IS NULL
          AND scheduled_time <= NOW() + INTERVAL '1 minute'
-         AND scheduled_time >= NOW() - INTERVAL '60 minutes'
-       RETURNING *`
+         AND scheduled_time >= NOW() - INTERVAL '60 minutes'`
     );
 
     if (!due.rowCount || due.rowCount === 0) return;
+
+    const dueIds = due.rows.map((r: any) => r.id);
+    const idPlaceholders = dueIds.map((_: any, i: number) => `$${i + 1}`).join(', ');
+    await query(`UPDATE scheduled_rides SET status = 'Dispatching' WHERE id IN (${idPlaceholders})`, dueIds);
 
     console.log(`[Scheduler] Dispatching ${due.rowCount} pre-accepted scheduled ride(s)`);
 

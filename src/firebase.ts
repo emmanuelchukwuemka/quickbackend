@@ -14,7 +14,7 @@ function init() {
     const serviceAccount = JSON.parse(raw);
     initializeApp({ credential: cert(serviceAccount) });
     initialized = true;
-    console.log('[FCM] firebase-admin initialized');
+    console.error('[FCM] firebase-admin initialized for project', serviceAccount.project_id);
   } catch (e) {
     console.error('[FCM] Failed to init firebase-admin:', e);
   }
@@ -52,7 +52,7 @@ export async function sendPushToTokens(
         }
       }
     });
-    console.log(`[FCM] sent ${response.successCount}/${valid.length} messages`);
+    console.error(`[FCM] sent ${response.successCount}/${valid.length} messages`);
   } catch (e) {
     console.error('[FCM] send error:', e);
   }

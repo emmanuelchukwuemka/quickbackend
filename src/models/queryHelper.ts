@@ -57,7 +57,7 @@ export const buildWhere = (condition: any = {}, values: any[] = []): { clause: s
       const degreeDistance = maxDistance / 111000;
       values.push(lat, lng, degreeDistance);
       const idx = values.length;
-      parts.push(`((lat - $${idx - 2})^2 + ((lng - $${idx - 1}) * cos(radians($${idx - 2})))^2) <= $${idx}^2`);
+      parts.push(`(POWER(lat - $${idx - 2}, 2) + POWER((lng - $${idx - 1}) * cos(radians($${idx - 2})), 2)) <= POWER($${idx}, 2)`);
       continue;
     }
 
@@ -67,8 +67,13 @@ export const buildWhere = (condition: any = {}, values: any[] = []): { clause: s
         continue;
       }
       if ('$in' in value) {
-        values.push(value.$in);
-        parts.push(`${key} = ANY($${values.length})`);
+        const arr = Array.isArray(value.$in) ? value.$in : [];
+        if (arr.length === 0) {
+          parts.push('FALSE');
+        } else {
+          const placeholders = arr.map((item: any) => { values.push(item); return `$${values.length}`; }).join(', ');
+          parts.push(`${key} IN (${placeholders})`);
+        }
         continue;
       }
       if ('$ne' in value) {
@@ -137,7 +142,7 @@ export const buildUpdateSet = (updates: any, values: any[] = []): { set: string;
       const value = normalized.$push[key];
       if (key === 'documents' && value?.$each) {
         values.push(JSON.stringify(value.$each));
-        setParts.push(`documents = documents || $${values.length}::jsonb`);
+        setParts.push(`documents = JSON_MERGE_PRESERVE(documents, $${values.length})`);
       }
     }
     delete normalized.$push;
@@ -153,10 +158,11 @@ export const buildUpdateSet = (updates: any, values: any[] = []): { set: string;
       setParts.push(`${key} = $${values.length}`);
       continue;
     }
-    values.push(value);
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      setParts.push(`${key} = $${values.length}::jsonb`);
+      values.push(JSON.stringify(value));
+      setParts.push(`${key} = $${values.length}`);
     } else {
+      values.push(value);
       setParts.push(`${key} = $${values.length}`);
     }
   }

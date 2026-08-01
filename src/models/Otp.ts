@@ -79,9 +79,9 @@ export default class Otp {
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
     const values = Object.values(row);
-    const result = await query(`INSERT INTO otps (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`, values);
-    const saved = Otp.fromRow(result.rows[0]);
+    await query(`INSERT INTO otps (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const saved = await Otp.findById(row.id);
     Object.assign(this, saved);
-    return saved;
+    return saved!;
   }
 }

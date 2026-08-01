@@ -122,14 +122,12 @@ initSockets(io);
 
 const connectDB = async () => {
   try {
+    console.log('[startup] connecting to database...');
     await initDb();
+    console.log('[startup] initDb complete, seeding reference data...');
     await ensureReferenceData();
-    // Add fcm_token column if it doesn't exist (idempotent migration)
-    try {
-      const { query } = await import('./db');
-      await query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS fcm_token VARCHAR DEFAULT ''`);
-    } catch (e) { /* column may already exist */ }
-    console.log('Connected to PostgreSQL');
+    console.log('[startup] reference data ready');
+    console.log('Connected to database');
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
 
@@ -143,11 +141,16 @@ const connectDB = async () => {
       console.log('[Scheduler] Scheduled ride dispatcher and reminders checks started (every 60s)');
     });
   } catch (err) {
-    console.error('Failed to connect to PostgreSQL', err);
+    console.error('Failed to connect to database', err);
   }
 };
 
-if (require.main === module) {
+// require.main === module fails to detect the real entrypoint under Phusion
+// Passenger (cPanel/CloudLinux Node hosting), which requires the app as a
+// module rather than running it directly — so the server silently never
+// started. NODE_ENV=test (set automatically by Jest) is what actually needs
+// to suppress this, everywhere else should boot for real.
+if (process.env.NODE_ENV !== 'test') {
   connectDB();
 }
 

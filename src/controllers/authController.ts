@@ -27,8 +27,8 @@ export const requestOtp = async (req: Request, res: Response) => {
       await otp.save();
       // Fire-and-forget — respond immediately, Resend handles delivery
       sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`)
-        .then(() => console.log(`[mailer] OTP delivered to ${email}`))
-        .catch((e: any) => console.error('[mailer] delivery failed:', e.message));
+        .then(() => console.error(`[mailer] OTP delivered to ${email}`))
+        .catch((e: any) => console.error('[mailer] delivery failed:', e));
       const payload: Record<string, string> = { message: 'OTP sent to email' };
       if (shouldExposeDebugOtp()) payload.debug_otp = code;
       res.json(payload);
@@ -142,8 +142,11 @@ export const userLogin = async (req: Request, res: Response) => {
     const user = (identifier && identifier.includes('@'))
       ? await User.findOne({ email: identifier })
       : await User.findOne({ phone_number: identifier });
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email or phone.' });
+    }
+    if (user.password !== password) {
+      return res.status(401).json({ message: 'Incorrect password.' });
     }
     const token = generateToken(user.id!);
     res.json({ user, token });
@@ -194,8 +197,11 @@ export const driverLogin = async (req: Request, res: Response) => {
     const driver = (identifier && identifier.includes('@'))
       ? await Driver.findOne({ email: identifier })
       : await Driver.findOne({ phone_number: identifier });
-    if (!driver || driver.password !== password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!driver) {
+      return res.status(404).json({ message: 'No driver account found with this email or phone.' });
+    }
+    if (driver.password !== password) {
+      return res.status(401).json({ message: 'Incorrect password.' });
     }
     const token = generateToken(driver.id!);
     res.json({ driver, token });

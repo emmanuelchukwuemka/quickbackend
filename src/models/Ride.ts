@@ -169,9 +169,8 @@ export default class Ride {
     const { set, values } = buildUpdateSet(updates);
     if (!set) return null;
     values.push(id);
-    const result = await query(`UPDATE rides SET ${set} WHERE id = $${values.length} RETURNING *`, values);
-    if (!result.rowCount) return null;
-    return Ride.fromRow(result.rows[0]);
+    await query(`UPDATE rides SET ${set} WHERE id = $${values.length}`, values);
+    return Ride.findById(id);
   }
 
   static async deleteMany(condition: any = {}) {
@@ -189,9 +188,9 @@ export default class Ride {
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
     const values = Object.values(row);
-    const result = await query(`INSERT INTO rides (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`, values);
-    const saved = Ride.fromRow(result.rows[0]);
+    await query(`INSERT INTO rides (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const saved = await Ride.findById(row.id);
     Object.assign(this, saved);
-    return saved;
+    return saved!;
   }
 }

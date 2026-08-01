@@ -68,7 +68,7 @@ export default class RideOption {
       })
       .join(', ');
 
-    const columns = Object.keys(rows[0]).map((column) => column === 'Type' ? '"Type"' : column);
+    const columns = Object.keys(rows[0]).map((column) => column === 'Type' ? '`Type`' : column);
     await query(`INSERT INTO ride_options (${columns.join(', ')}) VALUES ${placeholders} ON CONFLICT DO NOTHING`, values);
     return RideOption.find();
   }

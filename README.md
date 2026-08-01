@@ -1,12 +1,10 @@
 # quick-backend
 
-Backend API prepared for deployment on Render.
+Backend API for QuickDrop, deployed on cPanel (Node.js via Phusion Passenger) at www.quickdrop.ng.
 
-## Render deployment setup
+## Required environment variables
 
-1. Connect this GitHub repo to Render.
-2. Use `render.yaml` as the service configuration.
-3. Set required environment variables in Render dashboard or via `render.yaml`:
+Set these in the server's `.env` (see cPanel Node.js app config):
    - `DATABASE_URL`
    - `JWT_SECRET`
    - `TWILIO_ACCOUNT_SID`
@@ -27,5 +25,5 @@ Backend API prepared for deployment on Render.
 ## Notes
 
 - The project uses `dist/` for compiled TypeScript output.
-- `.env` is ignored in git and should be managed through Render secrets.
+- `.env` is ignored in git and must never be committed — manage secrets on the server directly.
 - Local development is still available via `npm run dev`.

@@ -8,6 +8,15 @@ let ioInstance: Server;
 export const userSockets = new Map<string, string>();
 export const driverSockets = new Map<string, string>();
 
+// Call offers for a target that isn't currently connected (locked/backgrounded
+// phone — its socket has dropped) are held here so they can be redelivered the
+// moment that device reconnects, rather than lost the instant the initial
+// relay attempt finds no live socket.
+type PendingCallOffer = { data: any; expiresAt: number };
+const pendingCallOffers = new Map<string, PendingCallOffer>();
+const pendingCallOfferKey = (toRole: 'driver' | 'passenger', toId: string) => `${toRole}:${toId}`;
+const CALL_RING_TIMEOUT_MS = 5 * 60 * 1000;
+
 export const getIO = () => {
   if (!ioInstance) {
     if (process.env.NODE_ENV === 'test') {
@@ -55,6 +64,18 @@ export const initSockets = (io: Server) => {
       } else {
         userSockets.set(data.id, socket.id);
         console.log(`[Socket] Passenger registered: ${data.id} -> ${socket.id}`);
+      }
+
+      // Redeliver any call that arrived while this device was disconnected
+      // (locked/backgrounded) and couldn't be relayed live.
+      const key = pendingCallOfferKey(data.role, data.id);
+      const pending = pendingCallOffers.get(key);
+      if (pending) {
+        pendingCallOffers.delete(key);
+        if (pending.expiresAt > Date.now()) {
+          socket.emit('call_offer', pending.data);
+          console.log(`[Socket] Pending call_offer redelivered to ${data.role} ${data.id}`);
+        }
       }
     });
 
@@ -181,34 +202,53 @@ export const initSockets = (io: Server) => {
     }) => {
       try {
         const targetSocketId = getTargetSocket(data.toId, data.toRole);
-        if (!targetSocketId) {
-          socket.emit('call_unavailable', { callId: data.callId, toId: data.toId });
-          return;
-        }
-        io.to(targetSocketId).emit('call_offer', data);
-        console.log(`[Socket] call_offer relayed to ${data.toRole} ${data.toId}`);
 
-        // Wake the callee's app with a push if it's backgrounded
-        try {
-          const { query } = await import('../db');
-          const { sendPushToTokens } = await import('../firebase');
-          const table = data.toRole === 'driver' ? 'drivers' : 'users';
-          const row = await query(
-            `SELECT fcm_token FROM ${table} WHERE uid = $1 OR id::text = $2 LIMIT 1`,
-            [data.toId, data.toId]
-          );
-          const fcmToken = row.rows[0]?.fcm_token;
-          if (fcmToken) {
+        const sendWakePush = async (): Promise<boolean> => {
+          try {
+            const { query } = await import('../db');
+            const { sendPushToTokens } = await import('../firebase');
+            const table = data.toRole === 'driver' ? 'drivers' : 'users';
+            const row = await query(
+              `SELECT fcm_token FROM ${table} WHERE uid = $1 OR id::text = $2 LIMIT 1`,
+              [data.toId, data.toId]
+            );
+            const fcmToken = row.rows[0]?.fcm_token;
+            if (!fcmToken) return false;
             await sendPushToTokens(
               [fcmToken],
               `Incoming call from ${data.fromName}`,
               'Tap to answer',
               { rideId: data.rideId, callId: data.callId, type: 'incoming_call' }
             );
+            return true;
+          } catch (fcmErr) {
+            console.warn('[Socket] FCM push call_offer error:', fcmErr);
+            return false;
           }
-        } catch (fcmErr) {
-          console.warn('[Socket] FCM push call_offer error:', fcmErr);
+        };
+
+        if (!targetSocketId) {
+          // Not connected right now (locked/backgrounded/killed) — hold the
+          // offer so it can be redelivered the instant they reconnect
+          // (see the `register` handler), and try to wake them with a push
+          // in the meantime instead of giving up immediately.
+          pendingCallOffers.set(pendingCallOfferKey(data.toRole, data.toId), {
+            data,
+            expiresAt: Date.now() + CALL_RING_TIMEOUT_MS,
+          });
+          const pushed = await sendWakePush();
+          if (!pushed) {
+            socket.emit('call_unavailable', { callId: data.callId, toId: data.toId });
+          }
+          return;
         }
+
+        io.to(targetSocketId).emit('call_offer', data);
+        console.log(`[Socket] call_offer relayed to ${data.toRole} ${data.toId}`);
+
+        // Also push even though the socket is live, so a backgrounded (but
+        // still connected) app can raise a heads-up alert.
+        await sendWakePush();
       } catch (err) {
         console.error('[Socket] call_offer error:', err);
       }

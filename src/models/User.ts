@@ -145,9 +145,8 @@ export default class User {
     const { set, values } = buildUpdateSet(updates);
     if (!set) return null;
     values.push(id);
-    const result = await query(`UPDATE users SET ${set} WHERE id = $${values.length} RETURNING *`, values);
-    if (!result.rowCount) return null;
-    return User.fromRow(result.rows[0]);
+    await query(`UPDATE users SET ${set} WHERE id = $${values.length}`, values);
+    return User.findById(id);
   }
 
   static async deleteMany(condition: any = {}) {
@@ -166,14 +165,15 @@ export default class User {
       idColumnType !== 'bigint' &&
       idColumnType !== 'integer' &&
       idColumnType !== 'smallint';
-    const row = this.toDbRow(shouldIncludeId);
+    const row: any = this.toDbRow(shouldIncludeId);
     const columns = Object.keys(row);
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
     const values = Object.values(row);
-    const result = await query(`INSERT INTO users (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`, values);
-    const saved = User.fromRow(result.rows[0]);
+    const result = await query(`INSERT INTO users (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const newId = shouldIncludeId ? row.id : result.insertId;
+    const saved = await User.findById(String(newId));
     Object.assign(this, saved);
-    return saved;
+    return saved!;
   }
 
   toJSON() {

@@ -87,11 +87,10 @@ router.post('/', async (req: Request, res: Response) => {
       : Number(estimated_fare) || 0;
 
     const id = uuid();
-    const result = await query(
+    await query(
       `INSERT INTO scheduled_rides
         (id, passenger_ref, pickup_address, dropoff_address, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, estimated_fare, scheduled_time, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending', NOW())
-       RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Pending', NOW())`,
       [
         id,
         passenger_ref || null,
@@ -105,7 +104,8 @@ router.post('/', async (req: Request, res: Response) => {
         scheduled_time,
       ]
     );
-    res.status(201).json(result.rows[0]);
+    const created = await query(`SELECT * FROM scheduled_rides WHERE id = $1 LIMIT 1`, [id]);
+    res.status(201).json(created.rows[0]);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
@@ -124,8 +124,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
        SET status = $1, driver_ref = COALESCE($3, driver_ref)
        WHERE id = $2
          AND LOWER(status) = 'pending'
-         AND driver_ref IS NULL
-       RETURNING *`,
+         AND driver_ref IS NULL`,
       [status, req.params.id, driver_ref || null]
     );
     if (!result.rowCount) {
@@ -138,7 +137,8 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
       }
       return res.status(409).json({ message: 'This ride has already been accepted by another driver.' });
     }
-    res.json(result.rows[0]);
+    const updated = await query(`SELECT * FROM scheduled_rides WHERE id = $1 LIMIT 1`, [req.params.id]);
+    res.json(updated.rows[0]);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
