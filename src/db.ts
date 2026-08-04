@@ -364,6 +364,27 @@ export const initDb = async () => {
     );
   `, 'create wallet_transactions');
 
+  // ── payment_transactions ───────────────────────────────────────────────────
+  // Ledger of real Paystack transactions (driver wallet top-ups and passenger
+  // ride payments). `reference` is the Paystack transaction reference and the
+  // idempotency key — a transaction is only ever credited/settled once,
+  // guarded by the UNIQUE constraint plus a status-guarded UPDATE.
+  await run(`
+    CREATE TABLE IF NOT EXISTS payment_transactions (
+      id VARCHAR(36) PRIMARY KEY,
+      reference VARCHAR(100) NOT NULL UNIQUE,
+      purpose VARCHAR(20) NOT NULL,
+      user_ref VARCHAR(255) NOT NULL,
+      ride_ref VARCHAR(36) NULL,
+      email VARCHAR(255) DEFAULT '',
+      amount DECIMAL(12,2) NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      gateway_response TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      verified_at DATETIME NULL
+    );
+  `, 'create payment_transactions');
+
   // ── fare_settings ──────────────────────────────────────────────────────────
   // Singleton config row (always id = 'default') driving fare calculation,
   // the driver wallet-funding gate, and the ride commission rate — all

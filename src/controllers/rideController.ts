@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Ride from '../models/Ride';
 import Driver from '../models/Driver';
+import User from '../models/User';
 import FareSettings from '../models/FareSettings';
 import WalletTransaction from '../models/WalletTransaction';
 import { query } from '../db';
@@ -131,6 +132,13 @@ export const requestRide = async (req: Request, res: Response) => {
       ridePayload.passenger_ref = req.body.passenger_id;
     }
 
+    if (ridePayload.passenger_ref) {
+      const passenger = await User.findOne({ $or: [{ id: ridePayload.passenger_ref }, { uid: ridePayload.passenger_ref }] });
+      if (passenger?.is_active === false) {
+        return res.status(403).json({ message: 'Your account has been suspended.', code: 'PASSENGER_SUSPENDED' });
+      }
+    }
+
     if (req.body.pickupLat && req.body.pickupLng) {
       ridePayload.pickup = {
         type: 'Point',
@@ -247,6 +255,9 @@ export const acceptRide = async (req: Request, res: Response) => {
     if (driver_ref) {
       const driver = await resolveDriver(driver_ref.toString());
       if (driver) {
+        if (driver.is_active === false) {
+          return res.status(403).json({ message: 'Your account has been suspended.', code: 'DRIVER_SUSPENDED' });
+        }
         const walletMinimum = (await FareSettings.getSettings()).wallet_minimum_balance;
         if ((driver.wallet_balance ?? 0) < walletMinimum) {
           return res.status(403).json({

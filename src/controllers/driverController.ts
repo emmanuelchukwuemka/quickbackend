@@ -48,10 +48,11 @@ export const createDriver = async (req: Request, res: Response) => {
 export const updateDriver = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    // wallet_balance and verification_status must only ever change via the
-    // dedicated wallet (topup/commission) and admin-approval endpoints — this
-    // generic update route has no auth, so it can't be trusted with them.
-    const { wallet_balance, verification_status, ...updates } = req.body;
+    // wallet_balance, verification_status, and is_active must only ever
+    // change via the dedicated wallet/approval/suspend admin endpoints —
+    // this generic update route has no auth, so it can't be trusted with
+    // them.
+    const { wallet_balance, verification_status, is_active, ...updates } = req.body;
     // Nothing left to set (e.g. caller sent only the stripped fields) — treat
     // as a no-op rather than letting findByIdAndUpdate's "no SET clause"
     // short-circuit read as a false "Driver not found".

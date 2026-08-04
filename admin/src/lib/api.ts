@@ -45,6 +45,7 @@ export interface ApiDriver {
   uid: string;
   email?: string;
   display_name: string;
+  photo_url?: string;
   phone_number?: string;
   created_time?: string;
   is_active?: boolean;
@@ -112,6 +113,10 @@ export const fetchScheduledRides = () => get<ApiScheduledRide[]>('/api/scheduled
 
 export const approveDriver = (id: string) => put(`/api/admin/driver/${id}/approve`);
 export const rejectDriver = (id: string) => put(`/api/admin/driver/${id}/reject`);
+export const suspendDriver = (id: string) => put(`/api/admin/driver/${id}/suspend`);
+export const reactivateDriver = (id: string) => put(`/api/admin/driver/${id}/reactivate`);
+export const suspendPassenger = (id: string) => put(`/api/admin/passenger/${id}/suspend`);
+export const reactivatePassenger = (id: string) => put(`/api/admin/passenger/${id}/reactivate`);
 
 export async function fetchDashboardSource() {
   const [drivers, users, rides] = await Promise.all([fetchDrivers(), fetchUsers(), fetchRides()]);

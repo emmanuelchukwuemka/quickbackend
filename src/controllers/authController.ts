@@ -90,6 +90,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
         await account.save();
       }
     }
+    if (account.is_active === false) {
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
+    }
+
     await Otp.deleteOne({ id: otp.id });
     const token = generateToken(account.id!);
     if (requestedRole === 'driver') {
@@ -148,6 +152,9 @@ export const userLogin = async (req: Request, res: Response) => {
     }
     if (user.password !== password) {
       return res.status(401).json({ message: 'Incorrect password.' });
+    }
+    if (user.is_active === false) {
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
     }
     const token = generateToken(user.id!);
     res.json({ user, token });
@@ -216,6 +223,9 @@ export const driverLogin = async (req: Request, res: Response) => {
     }
     if (driver.password !== password) {
       return res.status(401).json({ message: 'Incorrect password.' });
+    }
+    if (driver.is_active === false) {
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
     }
     const token = generateToken(driver.id!);
     res.json({ driver, token });
@@ -325,6 +335,10 @@ export const googleLogin = async (req: Request, res: Response) => {
     } else if (!user.display_name && name) {
       user.display_name = name;
       await User.findByIdAndUpdate(user.id!, { display_name: name });
+    }
+
+    if (user.is_active === false) {
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
     }
 
     const token = generateToken(user.id!);

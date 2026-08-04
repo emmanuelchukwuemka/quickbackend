@@ -4,9 +4,9 @@ import SearchInput from '../components/SearchInput';
 import StatusBadge from '../components/StatusBadge';
 import AsyncState from '../components/AsyncState';
 import { useApiList } from '../hooks/useApiList';
-import { approveDriver, fetchDrivers, rejectDriver, type ApiDriver } from '../lib/api';
+import { approveDriver, fetchDrivers, rejectDriver, suspendDriver, reactivateDriver, type ApiDriver } from '../lib/api';
 import { formatDate, formatNaira, initials } from '../lib/format';
-import { Check, X } from 'lucide-react';
+import { Check, X, Ban, RotateCcw } from 'lucide-react';
 
 const FILTERS = ['All', 'Pending', 'Approved', 'Rejected'] as const;
 
@@ -38,10 +38,11 @@ export default function Drivers() {
     });
   }, [data, search, filter]);
 
-  async function handleAction(id: string, action: 'approve' | 'reject') {
+  async function handleAction(id: string, action: 'approve' | 'reject' | 'suspend' | 'reactivate') {
     setActingId(id);
     try {
-      await (action === 'approve' ? approveDriver(id) : rejectDriver(id));
+      const fn = { approve: approveDriver, reject: rejectDriver, suspend: suspendDriver, reactivate: reactivateDriver }[action];
+      await fn(id);
       await refetch();
     } finally {
       setActingId(null);
@@ -96,9 +97,17 @@ export default function Drivers() {
                       <tr key={d.id} className="border-b border-gray-50 last:border-0">
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-2">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500">
-                              {initials(d.display_name || 'Driver')}
-                            </span>
+                            {d.photo_url ? (
+                              <img
+                                src={d.photo_url}
+                                alt={d.display_name || 'Driver'}
+                                className="h-8 w-8 shrink-0 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500">
+                                {initials(d.display_name || 'Driver')}
+                              </span>
+                            )}
                             <div className="min-w-0">
                               <p className="truncate font-medium text-gray-700">{d.display_name || 'Unnamed driver'}</p>
                               <p className="truncate text-xs text-gray-400">{d.phone_number || d.email || '—'}</p>
@@ -110,34 +119,58 @@ export default function Drivers() {
                         <td className="py-3 pr-4 text-gray-600">{d.total_trips ?? 0}</td>
                         <td className="py-3 pr-4 text-gray-600">{formatNaira(d.wallet_balance || 0)}</td>
                         <td className="py-3 pr-4">
-                          <StatusBadge label={v.label} tone={v.tone} />
+                          <div className="flex items-center gap-1.5">
+                            <StatusBadge label={v.label} tone={v.tone} />
+                            {d.is_active === false && <StatusBadge label="Suspended" tone="red" />}
+                          </div>
                         </td>
                         <td className="py-3 pr-4 text-gray-500">{formatDate(d.created_time)}</td>
                         <td className="py-3 pr-4">
-                          {isPending ? (
-                            <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => handleAction(String(d.id), 'approve')}
+                                  className="flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  <Check size={12} />
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => handleAction(String(d.id), 'reject')}
+                                  className="flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  <X size={12} />
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {d.is_active === false ? (
                               <button
                                 type="button"
                                 disabled={busy}
-                                onClick={() => handleAction(String(d.id), 'approve')}
-                                className="flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                onClick={() => handleAction(String(d.id), 'reactivate')}
+                                className="flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-100 disabled:opacity-50"
                               >
-                                <Check size={12} />
-                                Approve
+                                <RotateCcw size={12} />
+                                Reactivate
                               </button>
+                            ) : (
                               <button
                                 type="button"
                                 disabled={busy}
-                                onClick={() => handleAction(String(d.id), 'reject')}
-                                className="flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                                onClick={() => handleAction(String(d.id), 'suspend')}
+                                className="flex items-center gap-1 rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 disabled:opacity-50"
                               >
-                                <X size={12} />
-                                Reject
+                                <Ban size={12} />
+                                Suspend
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

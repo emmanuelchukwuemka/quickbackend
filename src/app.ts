@@ -20,6 +20,7 @@ import notificationRoutes from './routes/notificationRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import fareSettingsRoutes from './routes/fareSettingsRoutes';
 import adminAlertRoutes from './routes/adminAlertRoutes';
+import paymentGatewayRoutes from './routes/paymentGatewayRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import path from 'path';
 
@@ -55,7 +56,11 @@ const ensureReferenceData = async () => {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Stash the raw request body bytes alongside the parsed req.body — the
+// Paystack webhook handler needs the exact raw bytes to verify its HMAC
+// signature (re-serializing req.body would not byte-for-byte match what
+// Paystack actually signed).
+app.use(express.json({ verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
 
 // Serve the marketing landing page (static site built from ./landing via
@@ -106,6 +111,7 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/scheduled-rides', scheduledRideRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payments/gateway', paymentGatewayRoutes);
 // More specific /api/admin/* prefixes must be registered before the
 // catch-all /api/admin mount below — adminRoutes applies its auth
 // middleware to every request that enters it, including ones that don't

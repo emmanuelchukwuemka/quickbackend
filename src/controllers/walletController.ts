@@ -2,10 +2,36 @@ import { Request, Response } from 'express';
 import Driver from '../models/Driver';
 import WalletTransaction from '../models/WalletTransaction';
 
-const resolveDriver = (driverRef: string) =>
+export const resolveDriver = (driverRef: string) =>
   Driver.findOne({ $or: [{ id: driverRef }, { uid: driverRef }] });
 
-// Manual wallet top-up — no payment gateway yet, credits the wallet directly.
+// Atomic credit, shared by the admin manual-credit endpoint and the real
+// Paystack payment flow once a transaction is verified. Returns the new
+// balance.
+export const creditDriverWallet = async (
+  driverId: string,
+  amount: number,
+  note: string,
+  createdBy: string
+): Promise<number> => {
+  const updatedDriver = await Driver.findByIdAndUpdate(driverId, { $inc: { wallet_balance: amount } }, { new: true });
+  const balanceAfter = updatedDriver?.wallet_balance ?? 0;
+
+  await new WalletTransaction({
+    driver_ref: driverId,
+    type: 'topup',
+    amount,
+    balance_after: balanceAfter,
+    note,
+    created_by: createdBy,
+  }).save();
+
+  return balanceAfter;
+};
+
+// Admin-only manual wallet credit (goodwill credits, refunds, support cases)
+// — real driver-initiated top-ups now go through the Paystack flow in
+// paymentGatewayController.ts. Gated by requireAdminAuth at the route level.
 export const fundDriverWallet = async (req: Request, res: Response) => {
   try {
     const driverRef = req.params.id as string;
@@ -17,19 +43,9 @@ export const fundDriverWallet = async (req: Request, res: Response) => {
     const driver = await resolveDriver(driverRef);
     if (!driver || !driver.id) return res.status(404).json({ message: 'Driver not found' });
 
-    const updatedDriver = await Driver.findByIdAndUpdate(driver.id, { $inc: { wallet_balance: amount } }, { new: true });
-    const balanceAfter = updatedDriver?.wallet_balance ?? (driver.wallet_balance ?? 0) + amount;
+    const balanceAfter = await creditDriverWallet(driver.id, amount, 'Manual admin credit', 'admin');
 
-    await new WalletTransaction({
-      driver_ref: driver.id,
-      type: 'topup',
-      amount,
-      balance_after: balanceAfter,
-      note: 'Wallet top-up',
-      created_by: driver.id,
-    }).save();
-
-    res.json({ driver: updatedDriver, wallet_balance: balanceAfter });
+    res.json({ wallet_balance: balanceAfter });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

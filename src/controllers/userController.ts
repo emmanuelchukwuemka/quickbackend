@@ -35,9 +35,12 @@ export const updateUser = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const updates = req.body;
 
-    // Do not allow updating sensitive fields directly here
+    // Do not allow updating sensitive fields directly here — this route has
+    // no auth, so wallet balance, trip count, and active/suspended status
+    // must only ever change via dedicated, admin-gated endpoints.
     delete updates.wallet_balance;
     delete updates.numbe_trips;
+    delete updates.is_active;
 
     const updatedUser = await User.findByIdAndUpdate(id, updates, { new: true });
     if (!updatedUser) {
