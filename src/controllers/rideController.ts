@@ -1,11 +1,17 @@
 import { Request, Response } from 'express';
 import Ride from '../models/Ride';
+import Driver from '../models/Driver';
+import FareSettings from '../models/FareSettings';
+import WalletTransaction from '../models/WalletTransaction';
 import { query } from '../db';
 import { getIO, driverSockets, getUserSocket, getDriverSocket } from '../sockets/socketManager';
 import { sendPushToTokens } from '../firebase';
 import { calculateRideFare } from '../utils/fare';
 import { calculateDistanceAndETA } from '../utils/mapsService';
 import { sanitizeDisplayName } from '../utils/displayName';
+
+const resolveDriver = (driverRef: string) =>
+  Driver.findOne({ $or: [{ id: driverRef }, { uid: driverRef }] });
 
 const toEstimatedMinutes = (value: unknown) => {
   const num = Number(value);
@@ -160,13 +166,15 @@ export const requestRide = async (req: Request, res: Response) => {
       ridePayload.time = String(routeMetrics.estimatedMinutes);
     }
 
-    ridePayload.final_fare = calculateRideFare(ridePayload.distanceKm, ridePayload.ride_type);
+    ridePayload.final_fare = await calculateRideFare(ridePayload.distanceKm, ridePayload.ride_type);
 
     const saveRideAndBroadcast = async (payload: any) => {
       const ride = new Ride(payload);
       ride.status = 'searching';
       const savedRide = await ride.save();
       const rideData = buildRideResponse(savedRide);
+      const walletMinimum = (await FareSettings.getSettings()).wallet_minimum_balance;
+
       try {
         const io = getIO();
         const activeStatuses = ['accepted', 'in_progress', 'In_progress', 'arrived'];
@@ -176,11 +184,13 @@ export const requestRide = async (req: Request, res: Response) => {
           const busy = await Ride.findOne({ driver_ref: driverId, status: { $in: activeStatuses } });
           if (busy) continue;
           const driverRow = await query(
-            `SELECT is_online FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
+            `SELECT is_online, wallet_balance FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
             [driverId]
           );
           const isOnline = (driverRow.rows[0]?.is_online ?? '').toString().toLowerCase() === 'online';
           if (!isOnline) continue;
+          const walletBalance = Number(driverRow.rows[0]?.wallet_balance ?? 0);
+          if (walletBalance < walletMinimum) continue;
           io.to(socketId).emit('new_ride_offer', { ride: rideData });
           sent++;
         }
@@ -189,10 +199,11 @@ export const requestRide = async (req: Request, res: Response) => {
         console.warn('[Socket] Could not emit new_ride_offer:', socketErr);
       }
 
-      // FCM: push to online drivers who have a token stored
+      // FCM: push to online drivers who have a token stored and meet the wallet minimum
       try {
         const tokenRows = await query(
-          `SELECT fcm_token FROM drivers WHERE is_online = 'Online' AND fcm_token IS NOT NULL AND fcm_token != ''`
+          `SELECT fcm_token FROM drivers WHERE is_online = 'Online' AND wallet_balance >= $1 AND fcm_token IS NOT NULL AND fcm_token != ''`,
+          [walletMinimum]
         );
         const tokens = tokenRows.rows.map((r: any) => r.fcm_token as string).filter(Boolean);
         const pickup = rideData.pickup_address || 'Nearby location';
@@ -232,6 +243,23 @@ export const acceptRide = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const driver_ref = req.body.driver_ref || req.body.driver_id;
+
+    if (driver_ref) {
+      const driver = await resolveDriver(driver_ref.toString());
+      if (driver) {
+        const walletMinimum = (await FareSettings.getSettings()).wallet_minimum_balance;
+        if ((driver.wallet_balance ?? 0) < walletMinimum) {
+          return res.status(403).json({
+            message: `Fund your wallet with at least ₦${walletMinimum} to accept rides.`,
+            code: 'WALLET_BELOW_MINIMUM',
+          });
+        }
+        if ((driver.is_online ?? '').toString().toLowerCase() !== 'online') {
+          return res.status(403).json({ message: 'You must be online to accept rides.', code: 'DRIVER_OFFLINE' });
+        }
+      }
+    }
+
     const ride = await Ride.findByIdAndUpdate(id, { driver_ref, status: 'accepted', accepted_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
@@ -306,6 +334,34 @@ export const completeRide = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const ride = await Ride.findByIdAndUpdate(id, { status: 'Completed', completed_at: new Date() }, { new: true });
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    // Deduct the platform commission from the driver's wallet. Non-fatal —
+    // a wallet-side failure must never block the ride-completion response.
+    try {
+      if (ride.driver_ref && ride.final_fare && ride.final_fare > 0) {
+        const driver = await resolveDriver(ride.driver_ref.toString());
+        if (driver && driver.id) {
+          const settings = await FareSettings.getSettings();
+          const commission = Number((ride.final_fare * (settings.commission_percent / 100)).toFixed(2));
+          // Atomic increment (negative) — avoids a read-modify-write race if
+          // two rides for the same driver complete concurrently. Not floored
+          // at 0: a negative balance represents real driver debt and must
+          // stay in sync with the logged balance_after below.
+          const updatedDriver = await Driver.findByIdAndUpdate(driver.id, { $inc: { wallet_balance: -commission } }, { new: true });
+          const balanceAfter = updatedDriver?.wallet_balance ?? (driver.wallet_balance ?? 0) - commission;
+          await new WalletTransaction({
+            driver_ref: driver.id,
+            type: 'commission',
+            amount: -commission,
+            balance_after: balanceAfter,
+            note: `${settings.commission_percent}% commission on ride ${id}`,
+            ride_ref: id,
+          }).save();
+        }
+      }
+    } catch (walletErr) {
+      console.warn('[Wallet] completeRide commission deduction error:', walletErr);
+    }
 
     const passengerSocketId = getUserSocket(ride.passenger_ref!.toString());
     if (passengerSocketId) {

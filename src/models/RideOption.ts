@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { query } from '../db';
-import { buildWhere } from './queryHelper';
+import { buildWhere, buildUpdateSet } from './queryHelper';
 
 export interface IRideOption {
   Type: string;
@@ -48,6 +48,37 @@ export default class RideOption {
     const { clause, values } = buildWhere(condition);
     const result = await query(`SELECT * FROM ride_options WHERE ${clause}`, values);
     return result.rows.map(RideOption.fromRow);
+  }
+
+  static async findById(id: string) {
+    if (!id) return null;
+    const result = await query('SELECT * FROM ride_options WHERE id = $1 LIMIT 1', [id]);
+    if (!result.rowCount) return null;
+    return RideOption.fromRow(result.rows[0]);
+  }
+
+  static async findByIdAndUpdate(id: string, updates: any) {
+    const { set, values } = buildUpdateSet(updates);
+    if (!set) return null;
+    values.push(id);
+    await query(`UPDATE ride_options SET ${set} WHERE id = $${values.length}`, values);
+    return RideOption.findById(id);
+  }
+
+  static async deleteOne(condition: any = {}) {
+    const { clause, values } = buildWhere(condition);
+    await query(`DELETE FROM ride_options WHERE ${clause}`, values);
+  }
+
+  async save() {
+    const row = this.toDbRow();
+    const columns = Object.keys(row).map((column) => (column === 'Type' ? '`Type`' : column));
+    const placeholders = Object.keys(row).map((_, index) => `$${index + 1}`).join(', ');
+    const values = Object.values(row);
+    await query(`INSERT INTO ride_options (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    const saved = await RideOption.findById(row.id);
+    Object.assign(this, saved);
+    return saved!;
   }
 
   static async insertMany(records: any[]) {

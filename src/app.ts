@@ -12,11 +12,20 @@ import rideRoutes from './routes/rideRoutes';
 import scheduledRideRoutes from './routes/scheduledRideRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import adminRoutes from './routes/adminRoutes';
+import adminAuthRoutes from './routes/adminAuthRoutes';
+import adminUserRoutes from './routes/adminUserRoutes';
+import promoCodeRoutes from './routes/promoCodeRoutes';
+import complaintRoutes from './routes/complaintRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import settingsRoutes from './routes/settingsRoutes';
+import fareSettingsRoutes from './routes/fareSettingsRoutes';
+import adminAlertRoutes from './routes/adminAlertRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import path from 'path';
 
 import City from './models/City';
 import RideOption from './models/RideOption';
+import { seedDefaultAdmin } from './controllers/adminAuthController';
 
 const app: Application = express();
 
@@ -49,8 +58,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve the marketing landing page (static site built from ./landing via
+// `npm run build` inside that folder) at the root domain. Only serves exact
+// file matches (index.html for '/', plus its assets) — everything else
+// (API routes, /admin) falls through untouched.
+app.use(express.static(path.join(__dirname, '../landing/dist')));
+
 // Serve static files (like uploaded images)
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve the admin dashboard (React SPA built from ./admin via `npm run build`
+// inside that folder) at /admin. The fallback middleware handles client-side
+// routes (e.g. /admin/drivers) that don't correspond to a static file.
+const adminDistPath = path.join(__dirname, '../admin/dist');
+app.use('/admin', express.static(adminDistPath));
+app.use('/admin', (req: Request, res: Response) => {
+  res.sendFile(path.join(adminDistPath, 'index.html'));
+});
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   try {
@@ -82,7 +106,20 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/scheduled-rides', scheduledRideRoutes);
 app.use('/api/payments', paymentRoutes);
+// More specific /api/admin/* prefixes must be registered before the
+// catch-all /api/admin mount below — adminRoutes applies its auth
+// middleware to every request that enters it, including ones that don't
+// match any of its own routes, so it would otherwise intercept and reject
+// these before they ever reached their real handlers.
+app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/promo-codes', promoCodeRoutes);
+app.use('/api/admin/notifications', notificationRoutes);
+app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/admin/fare-settings', fareSettingsRoutes);
+app.use('/api/admin/alerts', adminAlertRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/complaints', complaintRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Mock Data Replacement Routes
@@ -126,6 +163,7 @@ const connectDB = async () => {
     await initDb();
     console.log('[startup] initDb complete, seeding reference data...');
     await ensureReferenceData();
+    await seedDefaultAdmin();
     console.log('[startup] reference data ready');
     console.log('Connected to database');
     server.listen(PORT, () => {

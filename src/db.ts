@@ -270,4 +270,115 @@ export const initDb = async () => {
       reminded_5m BOOLEAN DEFAULT FALSE
     );
   `, 'create scheduled_rides');
+
+  // ── admin_users ────────────────────────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id VARCHAR(36) PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      display_name VARCHAR(255) NOT NULL DEFAULT '',
+      role VARCHAR(30) NOT NULL DEFAULT 'support',
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME NULL
+    );
+  `, 'create admin_users');
+
+  // ── promo_codes ────────────────────────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id VARCHAR(36) PRIMARY KEY,
+      code VARCHAR(50) UNIQUE NOT NULL,
+      description VARCHAR(255) DEFAULT '',
+      discount_type VARCHAR(20) NOT NULL DEFAULT 'percent',
+      discount_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+      max_uses INT NULL,
+      uses_count INT DEFAULT 0,
+      expires_at DATETIME NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `, 'create promo_codes');
+
+  // ── complaints ─────────────────────────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id VARCHAR(36) PRIMARY KEY,
+      user_ref VARCHAR(255),
+      user_role VARCHAR(20) DEFAULT 'passenger',
+      subject VARCHAR(255) DEFAULT '',
+      message TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'open',
+      admin_notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      resolved_at DATETIME NULL
+    );
+  `, 'create complaints');
+
+  // ── notification_log ───────────────────────────────────────────────────────
+  await run(`
+    CREATE TABLE IF NOT EXISTS notification_log (
+      id VARCHAR(36) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      body TEXT,
+      audience VARCHAR(20) NOT NULL DEFAULT 'all_passengers',
+      recipient_count INT DEFAULT 0,
+      sent_by VARCHAR(255) DEFAULT '',
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `, 'create notification_log');
+
+  // ── admin_notifications ────────────────────────────────────────────────────
+  // System-generated alerts *to* the admin panel (new driver application,
+  // etc.) — distinct from notification_log, which is admin-sent messages
+  // *to* drivers/passengers.
+  await run(`
+    CREATE TABLE IF NOT EXISTS admin_notifications (
+      id VARCHAR(36) PRIMARY KEY,
+      type VARCHAR(40) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT,
+      related_type VARCHAR(30),
+      related_id VARCHAR(255),
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `, 'create admin_notifications');
+
+  // ── wallet_transactions ────────────────────────────────────────────────────
+  // Signed ledger: positive amount = credit (admin top-up), negative =
+  // debit (ride commission). balance_after makes it auditable independent
+  // of the live drivers.wallet_balance value.
+  await run(`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id VARCHAR(36) PRIMARY KEY,
+      driver_ref VARCHAR(255) NOT NULL,
+      type VARCHAR(20) NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      balance_after DECIMAL(12,2) NOT NULL,
+      note VARCHAR(500) DEFAULT '',
+      ride_ref VARCHAR(36),
+      created_by VARCHAR(255) DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `, 'create wallet_transactions');
+
+  // ── fare_settings ──────────────────────────────────────────────────────────
+  // Singleton config row (always id = 'default') driving fare calculation,
+  // the driver wallet-funding gate, and the ride commission rate — all
+  // editable from the admin panel instead of hardcoded constants.
+  await run(`
+    CREATE TABLE IF NOT EXISTS fare_settings (
+      id VARCHAR(36) PRIMARY KEY,
+      base_fare DECIMAL(12,2) NOT NULL DEFAULT 500,
+      price_per_km DECIMAL(12,2) NOT NULL DEFAULT 150,
+      standard_multiplier DECIMAL(6,2) NOT NULL DEFAULT 1,
+      premium_multiplier DECIMAL(6,2) NOT NULL DEFAULT 1.3,
+      xl_multiplier DECIMAL(6,2) NOT NULL DEFAULT 1,
+      wallet_minimum_balance DECIMAL(12,2) NOT NULL DEFAULT 5000,
+      commission_percent DECIMAL(5,2) NOT NULL DEFAULT 10,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `, 'create fare_settings');
 };

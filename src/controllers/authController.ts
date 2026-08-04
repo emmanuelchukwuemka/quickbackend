@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import User from '../models/User';
 import Driver from '../models/Driver';
 import Otp from '../models/Otp';
+import AdminNotification from '../models/AdminNotification';
 import { otpFallbackDisplayName } from '../utils/displayName';
 
 const generateToken = (id: string) => {
@@ -183,6 +184,19 @@ export const driverSignup = async (req: Request, res: Response) => {
     }
     const newDriver = new Driver(driverData);
     const savedDriver = await newDriver.save();
+
+    try {
+      await new AdminNotification({
+        type: 'driver_application',
+        title: 'New Driver Application',
+        message: `${savedDriver.display_name || 'A new driver'} submitted an application and is awaiting review.`,
+        related_type: 'driver',
+        related_id: savedDriver.id,
+      }).save();
+    } catch (alertErr) {
+      console.warn('[AdminNotification] driverSignup alert error:', alertErr);
+    }
+
     const token = generateToken(savedDriver.id!);
     res.status(201).json({ driver: savedDriver, token });
   } catch (error: any) {

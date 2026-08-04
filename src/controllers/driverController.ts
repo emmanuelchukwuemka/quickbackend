@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Driver from '../models/Driver';
+import AdminNotification from '../models/AdminNotification';
 import { query } from '../db';
 
 export const getAllDrivers = async (req: Request, res: Response) => {
@@ -25,6 +26,19 @@ export const createDriver = async (req: Request, res: Response) => {
   try {
     const newDriver = new Driver(req.body);
     const savedDriver = await newDriver.save();
+
+    try {
+      await new AdminNotification({
+        type: 'driver_application',
+        title: 'New Driver Application',
+        message: `${savedDriver.display_name || 'A new driver'} submitted an application and is awaiting review.`,
+        related_type: 'driver',
+        related_id: savedDriver.id,
+      }).save();
+    } catch (alertErr) {
+      console.warn('[AdminNotification] createDriver alert error:', alertErr);
+    }
+
     res.status(201).json(savedDriver);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
@@ -34,8 +48,16 @@ export const createDriver = async (req: Request, res: Response) => {
 export const updateDriver = async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const updates = req.body;
-    const updatedDriver = await Driver.findByIdAndUpdate(id, updates, { new: true });
+    // wallet_balance and verification_status must only ever change via the
+    // dedicated wallet (topup/commission) and admin-approval endpoints — this
+    // generic update route has no auth, so it can't be trusted with them.
+    const { wallet_balance, verification_status, ...updates } = req.body;
+    // Nothing left to set (e.g. caller sent only the stripped fields) — treat
+    // as a no-op rather than letting findByIdAndUpdate's "no SET clause"
+    // short-circuit read as a false "Driver not found".
+    const updatedDriver = Object.keys(updates).length
+      ? await Driver.findByIdAndUpdate(id, updates, { new: true })
+      : await Driver.findById(id);
     if (!updatedDriver) return res.status(404).json({ message: 'Driver not found' });
     res.json(updatedDriver);
   } catch (error: any) {

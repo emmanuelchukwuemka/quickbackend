@@ -1,11 +1,13 @@
-export const BASE_FARE_NAIRA = 500;
-export const PRICE_PER_KM_NAIRA = 150;
+import FareSettings from '../models/FareSettings';
 
-const RIDE_TYPE_MULTIPLIERS: Record<string, number> = {
-  standard: 1,
-  comfort: 1.3,
-  premium: 1.3,
-  car: 1,
+type MultiplierKey = 'standard_multiplier' | 'premium_multiplier' | 'xl_multiplier';
+
+const RIDE_TYPE_MULTIPLIER_KEY: Record<string, MultiplierKey> = {
+  standard: 'standard_multiplier',
+  comfort: 'premium_multiplier',
+  premium: 'premium_multiplier',
+  car: 'standard_multiplier',
+  xl: 'xl_multiplier',
 };
 
 export const normalizeRideType = (rideType?: string) =>
@@ -36,9 +38,13 @@ export const calculateDistanceKm = (
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-export const calculateRideFare = (distanceKm: number, rideType?: string) => {
+// Reads live fare configuration from the admin-editable fare_settings row
+// instead of hardcoded constants.
+export const calculateRideFare = async (distanceKm: number, rideType?: string) => {
+  const settings = await FareSettings.getSettings();
   const safeDistance = Number.isFinite(distanceKm) && distanceKm > 0 ? distanceKm : 0;
-  const multiplier = RIDE_TYPE_MULTIPLIERS[normalizeRideType(rideType)] ?? 1;
-  const total = (BASE_FARE_NAIRA + safeDistance * PRICE_PER_KM_NAIRA) * multiplier;
+  const multiplierKey = RIDE_TYPE_MULTIPLIER_KEY[normalizeRideType(rideType)] ?? 'standard_multiplier';
+  const multiplier = settings[multiplierKey];
+  const total = (settings.base_fare + safeDistance * settings.price_per_km) * multiplier;
   return Number(total.toFixed(2));
 };

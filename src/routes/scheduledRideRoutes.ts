@@ -83,7 +83,7 @@ router.post('/', async (req: Request, res: Response) => {
     );
     const hasCoordinates = distanceKm > 0;
     const normalizedFare = hasCoordinates
-      ? calculateRideFare(distanceKm)
+      ? await calculateRideFare(distanceKm)
       : Number(estimated_fare) || 0;
 
     const id = uuid();
