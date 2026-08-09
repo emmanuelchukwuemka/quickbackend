@@ -3,14 +3,16 @@ import Panel from '../components/Panel';
 import AsyncState from '../components/AsyncState';
 import EarningsChart from '../components/EarningsChart';
 import { useApiList } from '../hooks/useApiList';
-import { fetchDashboardSource } from '../lib/api';
+import { fetchDashboardSource, fetchWalletSummary } from '../lib/api';
 import { buildDailyEarnings } from '../lib/earnings';
+import { buildDailyWalletSeries } from '../lib/walletStats';
 import { formatDate, formatNaira, formatTime } from '../lib/format';
 
 const SUMMARY_ICON_BG = 'bg-violet-500';
 
 export default function Earnings() {
   const { loading, error, data } = useApiList(fetchDashboardSource);
+  const { loading: walletLoading, error: walletError, data: walletData } = useApiList(fetchWalletSummary);
 
   const summary = useMemo(() => {
     if (!data) return null;
@@ -38,6 +40,18 @@ export default function Earnings() {
     };
   }, [data]);
 
+  const walletSummary = useMemo(() => {
+    if (!walletData || !data) return null;
+    const totalWalletBalance = data.drivers.reduce((sum, d) => sum + (d.wallet_balance || 0), 0);
+    return {
+      totalCommission: walletData.totals.commission ? Math.abs(walletData.totals.commission) : 0,
+      totalTopups: walletData.totals.topup || 0,
+      totalWalletBalance,
+      commissionSeries: buildDailyWalletSeries(walletData.recent, 'commission', 30),
+      topupSeries: buildDailyWalletSeries(walletData.recent, 'topup', 30),
+    };
+  }, [walletData, data]);
+
   return (
     <AsyncState loading={loading} error={error} data={summary} loadingLabel="Loading earnings…">
       {(s) => (
@@ -63,6 +77,38 @@ export default function Earnings() {
           <Panel title="Earnings — Last 14 Days">
             <EarningsChart data={s.dailySeries} />
           </Panel>
+
+          <AsyncState loading={walletLoading} error={walletError} data={walletSummary} loadingLabel="Loading wallet data…">
+            {(w) => (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 text-white">%</span>
+                    <p className="mt-3 text-xs text-gray-500">Total Commission Earned</p>
+                    <p className="text-xl font-semibold text-gray-900">{formatNaira(w.totalCommission)}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white">₦</span>
+                    <p className="mt-3 text-xs text-gray-500">Total Driver Top-ups</p>
+                    <p className="text-xl font-semibold text-gray-900">{formatNaira(w.totalTopups)}</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 text-white">Σ</span>
+                    <p className="mt-3 text-xs text-gray-500">Combined Driver Wallet Balance</p>
+                    <p className="text-xl font-semibold text-gray-900">{formatNaira(w.totalWalletBalance)}</p>
+                  </div>
+                </div>
+
+                <Panel title="Commission Earned — Last 30 Days">
+                  <EarningsChart data={w.commissionSeries} />
+                </Panel>
+
+                <Panel title="Driver Wallet Top-ups — Last 30 Days">
+                  <EarningsChart data={w.topupSeries} />
+                </Panel>
+              </div>
+            )}
+          </AsyncState>
 
           <Panel title="Completed Trip Payouts">
             {s.transactions.length === 0 ? (

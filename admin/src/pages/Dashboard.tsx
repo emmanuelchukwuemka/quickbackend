@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, Loader2, AlertTriangle } from 'lucide-react';
+import { Calendar, ChevronDown, Loader2, AlertTriangle, Car, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatCard from '../components/StatCard';
 import Panel from '../components/Panel';
@@ -97,6 +97,40 @@ export default function Dashboard() {
           <PendingApprovals approvals={data.pendingDriverApprovals} onActionComplete={() => window.location.reload()} />
         </Panel>
       </div>
+
+      <Panel title="Recent Signups">
+        {data.recentSignups.length === 0 ? (
+          <p className="py-6 text-center text-sm text-gray-400">No signups yet.</p>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {data.recentSignups.map((s) => (
+              <Link
+                key={`${s.role}-${s.id}`}
+                to={s.to}
+                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white ${
+                      s.role === 'driver' ? 'bg-emerald-500' : 'bg-orange-500'
+                    }`}
+                  >
+                    {s.role === 'driver' ? <Car size={16} /> : <User size={16} />}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{s.name}</p>
+                    <p className="text-xs capitalize text-gray-400">{s.role}</p>
+                  </div>
+                </div>
+                <div className="text-right text-xs text-gray-500">
+                  <p>{s.joinedDate}</p>
+                  <p className="text-gray-400">{s.joinedTime}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

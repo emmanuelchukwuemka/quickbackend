@@ -16,6 +16,9 @@ type PendingCallOffer = { data: any; expiresAt: number };
 const pendingCallOffers = new Map<string, PendingCallOffer>();
 const pendingCallOfferKey = (toRole: 'driver' | 'passenger', toId: string) => `${toRole}:${toId}`;
 const CALL_RING_TIMEOUT_MS = 5 * 60 * 1000;
+// How long to wait after a passenger's socket drops before treating it as a
+// real departure rather than a transient network blip.
+const DISCONNECT_GRACE_MS = 20 * 1000;
 
 export const getIO = () => {
   if (!ioInstance) {
@@ -83,13 +86,21 @@ export const initSockets = (io: Server) => {
     socket.on('updateLocation', async (data: { driverId: string; lat: number; lng: number }) => {
       try {
         const { driverId, lat, lng } = data;
-        
-        await Driver.findByIdAndUpdate(driverId, {
-          location: {
-            type: 'Point',
-            coordinates: [lng, lat]
-          }
-        });
+
+        // The app sends the driver's string uid here, not their numeric id —
+        // findByIdAndUpdate only matches on id, so this was silently failing
+        // to persist every single location update (the real-time relay to
+        // the passenger below still worked, but the stored location never
+        // actually changed, leaving the poll-fallback permanently stale).
+        const driver = await Driver.findOne({ $or: [{ id: driverId }, { uid: driverId }] });
+        if (driver?.id) {
+          await Driver.findByIdAndUpdate(driver.id, {
+            location: {
+              type: 'Point',
+              coordinates: [lng, lat]
+            }
+          });
+        }
 
         // Find if this driver is currently on an active ride
         const activeRide = await Ride.findOne({
@@ -113,12 +124,16 @@ export const initSockets = (io: Server) => {
     socket.on('updateUserLocation', async (data: { userId: string; lat: number; lng: number }) => {
       try {
         const { userId, lat, lng } = data;
-        await User.findByIdAndUpdate(userId, {
-          location: {
-            type: 'Point',
-            coordinates: [lng, lat]
-          }
-        });
+        // Same id/uid mismatch as updateLocation above.
+        const user = await User.findOne({ $or: [{ id: userId }, { uid: userId }] });
+        if (user?.id) {
+          await User.findByIdAndUpdate(user.id, {
+            location: {
+              type: 'Point',
+              coordinates: [lng, lat]
+            }
+          });
+        }
       } catch (err) {
         console.error('[Socket] Error updating user location:', err);
       }
@@ -296,9 +311,18 @@ export const initSockets = (io: Server) => {
         if (value === socket.id) driverSockets.delete(key);
       }
       for (const passengerId of disconnectedPassengerIds) {
-        cancelSearchingRidesForPassenger(passengerId, io).catch((err) => {
-          console.error('[Socket] Failed to cancel searching rides for disconnected passenger:', err);
-        });
+        // Mobile connections drop and reconnect constantly (a signal blip, a
+        // WiFi/cellular handoff, the OS briefly suspending the socket) —
+        // Socket.IO clients recover from these in a second or two on their
+        // own. Cancelling the instant the transport drops treated a normal
+        // reconnect as "the passenger left" and cancelled their search out
+        // from under them. Wait, then only cancel if they're still gone.
+        setTimeout(() => {
+          if (userSockets.has(passengerId)) return; // reconnected — nothing to do
+          cancelSearchingRidesForPassenger(passengerId, io).catch((err) => {
+            console.error('[Socket] Failed to cancel searching rides for disconnected passenger:', err);
+          });
+        }, DISCONNECT_GRACE_MS);
       }
     });
   });

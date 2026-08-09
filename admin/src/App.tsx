@@ -5,7 +5,9 @@ import RequireAuth from './layout/RequireAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Drivers from './pages/Drivers';
+import DriverDetail from './pages/DriverDetail';
 import Passengers from './pages/Passengers';
+import PassengerDetail from './pages/PassengerDetail';
 import Trips from './pages/Trips';
 import Bookings from './pages/Bookings';
 import Earnings from './pages/Earnings';
@@ -40,6 +42,8 @@ function App() {
       <Route element={<RequireAuth />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="drivers/:id" element={<DriverDetail />} />
+          <Route path="passengers/:id" element={<PassengerDetail />} />
           {navItems
             .filter((item) => item.path !== '/')
             .map((item) => {

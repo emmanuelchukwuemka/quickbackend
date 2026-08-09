@@ -78,6 +78,26 @@ export default class WalletTransaction {
     return result.rows.map(WalletTransaction.fromRow);
   }
 
+  // True SQL aggregate, not row-limited like find() — stays accurate no
+  // matter how large the ledger grows, since it never has to pull every row
+  // into the app just to add them up.
+  static async sumByType(): Promise<Record<WalletTransactionType, number>> {
+    const result = await query('SELECT type, SUM(amount) AS total FROM wallet_transactions GROUP BY type', []);
+    const totals: Record<WalletTransactionType, number> = { topup: 0, commission: 0, adjustment: 0 };
+    for (const row of result.rows) {
+      if (row.type in totals) totals[row.type as WalletTransactionType] = Number(row.total) || 0;
+    }
+    return totals;
+  }
+
+  // Bounded by time rather than row count, so a daily-bucketed chart never
+  // silently drops older transactions the way a fixed LIMIT would once the
+  // ledger passes that many rows.
+  static async findSince(since: Date) {
+    const result = await query('SELECT * FROM wallet_transactions WHERE created_at >= $1 ORDER BY created_at ASC', [since]);
+    return result.rows.map(WalletTransaction.fromRow);
+  }
+
   async save() {
     const row = this.toDbRow();
     const columns = Object.keys(row);

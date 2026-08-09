@@ -44,12 +44,13 @@ export const initWalletTopup = async (req: Request, res: Response) => {
   }
 };
 
-// Shared settlement path for both the client-triggered verify call and the
-// Paystack webhook. Always re-verifies against Paystack's API directly
-// (never trusts a client- or webhook-supplied "success" claim at face
-// value), and only ever credits the wallet once per reference via
+// Shared settlement path for the client-triggered verify call, the Paystack
+// webhook, and the periodic reconciler (see utils/paymentReconciler.ts).
+// Always re-verifies against Paystack's API directly (never trusts a
+// client- or webhook-supplied "success" claim at face value), and only
+// ever credits the wallet once per reference via
 // PaymentTransaction.markSettled's status-guarded UPDATE.
-const settleReference = async (reference: string) => {
+export const settleReference = async (reference: string) => {
   const txn = await PaymentTransaction.findByReference(reference);
   if (!txn) return { found: false as const };
   if (txn.status !== 'pending') return { found: true as const, txn, alreadySettled: true };

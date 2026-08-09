@@ -24,6 +24,24 @@ export interface IDriver {
   };
   car_model?: string;
   car_plate?: string;
+  date_of_birth?: string;
+  gender?: string;
+  residential_address?: string;
+  state?: string;
+  lga?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  nin?: string;
+  license_number?: string;
+  license_expiry?: string;
+  vehicle_make?: string;
+  vehicle_year?: string;
+  vehicle_colour?: string;
+  vehicle_registration_number?: string;
+  seat_count?: number;
+  is_air_conditioned?: boolean;
+  vehicle_ownership?: string;
 }
 
 export default class Driver {
@@ -46,6 +64,24 @@ export default class Driver {
   location?: { type: 'Point'; coordinates: number[] };
   car_model?: string;
   car_plate?: string;
+  date_of_birth?: string;
+  gender?: string;
+  residential_address?: string;
+  state?: string;
+  lga?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  nin?: string;
+  license_number?: string;
+  license_expiry?: string;
+  vehicle_make?: string;
+  vehicle_year?: string;
+  vehicle_colour?: string;
+  vehicle_registration_number?: string;
+  seat_count?: number;
+  is_air_conditioned?: boolean;
+  vehicle_ownership?: string;
 
   constructor(data: Partial<IDriver> & { id?: string } = {}) {
     this.id = data.id;
@@ -67,6 +103,24 @@ export default class Driver {
     this.location = data.location;
     this.car_model = data.car_model;
     this.car_plate = data.car_plate;
+    this.date_of_birth = data.date_of_birth || '';
+    this.gender = data.gender || '';
+    this.residential_address = data.residential_address || '';
+    this.state = data.state || '';
+    this.lga = data.lga || '';
+    this.emergency_contact_name = data.emergency_contact_name || '';
+    this.emergency_contact_phone = data.emergency_contact_phone || '';
+    this.emergency_contact_relationship = data.emergency_contact_relationship || '';
+    this.nin = data.nin || '';
+    this.license_number = data.license_number || '';
+    this.license_expiry = data.license_expiry || '';
+    this.vehicle_make = data.vehicle_make || '';
+    this.vehicle_year = data.vehicle_year || '';
+    this.vehicle_colour = data.vehicle_colour || '';
+    this.vehicle_registration_number = data.vehicle_registration_number || '';
+    this.seat_count = data.seat_count ?? 4;
+    this.is_air_conditioned = data.is_air_conditioned ?? true;
+    this.vehicle_ownership = data.vehicle_ownership || '';
   }
 
   private toDbRow(includeId: boolean) {
@@ -95,6 +149,24 @@ export default class Driver {
       lng: coordinates[0] ?? 0,
       car_model: this.car_model || '',
       car_plate: this.car_plate || '',
+      date_of_birth: this.date_of_birth || '',
+      gender: this.gender || '',
+      residential_address: this.residential_address || '',
+      state: this.state || '',
+      lga: this.lga || '',
+      emergency_contact_name: this.emergency_contact_name || '',
+      emergency_contact_phone: this.emergency_contact_phone || '',
+      emergency_contact_relationship: this.emergency_contact_relationship || '',
+      nin: this.nin || '',
+      license_number: this.license_number || '',
+      license_expiry: this.license_expiry || '',
+      vehicle_make: this.vehicle_make || '',
+      vehicle_year: this.vehicle_year || '',
+      vehicle_colour: this.vehicle_colour || '',
+      vehicle_registration_number: this.vehicle_registration_number || '',
+      seat_count: this.seat_count ?? 4,
+      is_air_conditioned: this.is_air_conditioned ?? true,
+      vehicle_ownership: this.vehicle_ownership || '',
     };
   }
 
@@ -119,6 +191,24 @@ export default class Driver {
       location: { type: 'Point', coordinates: [Number(row.lng), Number(row.lat)] },
       car_model: row.car_model ?? '',
       car_plate: row.car_plate ?? '',
+      date_of_birth: row.date_of_birth ?? '',
+      gender: row.gender ?? '',
+      residential_address: row.residential_address ?? '',
+      state: row.state ?? '',
+      lga: row.lga ?? '',
+      emergency_contact_name: row.emergency_contact_name ?? '',
+      emergency_contact_phone: row.emergency_contact_phone ?? '',
+      emergency_contact_relationship: row.emergency_contact_relationship ?? '',
+      nin: row.nin ?? '',
+      license_number: row.license_number ?? '',
+      license_expiry: row.license_expiry ?? '',
+      vehicle_make: row.vehicle_make ?? '',
+      vehicle_year: row.vehicle_year ?? '',
+      vehicle_colour: row.vehicle_colour ?? '',
+      vehicle_registration_number: row.vehicle_registration_number ?? '',
+      seat_count: row.seat_count != null ? Number(row.seat_count) : 4,
+      is_air_conditioned: row.is_air_conditioned ?? true,
+      vehicle_ownership: row.vehicle_ownership ?? '',
     });
   }
 

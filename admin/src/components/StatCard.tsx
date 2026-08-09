@@ -1,4 +1,5 @@
 import { Users, User, Car, Wallet, Clock, XCircle, ArrowUp, ArrowDown, Minus, type LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const iconMap: Record<string, LucideIcon> = {
   users: Users,
@@ -25,13 +26,14 @@ interface StatCardProps {
   trend: 'up' | 'down' | 'flat' | 'link';
   icon: string;
   color: string;
+  to?: string;
 }
 
-export default function StatCard({ label, value, delta, trend, icon, color }: StatCardProps) {
+export default function StatCard({ label, value, delta, trend, icon, color, to }: StatCardProps) {
   const Icon = iconMap[icon] ?? Users;
 
-  return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+  const body = (
+    <>
       <div className="flex items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white ${colorMap[color]}`}>
           <Icon size={20} />
@@ -39,11 +41,7 @@ export default function StatCard({ label, value, delta, trend, icon, color }: St
         <p className="text-sm text-gray-500">{label}</p>
       </div>
       <p className="mt-3 text-2xl font-semibold text-gray-900">{value}</p>
-      {trend === 'link' && (
-        <button type="button" className="mt-1 text-xs font-medium text-blue-600 hover:underline">
-          {delta}
-        </button>
-      )}
+      {trend === 'link' && <p className="mt-1 text-xs font-medium text-blue-600">{delta}</p>}
       {trend === 'up' && (
         <p className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-600">
           <ArrowUp size={12} />
@@ -62,6 +60,16 @@ export default function StatCard({ label, value, delta, trend, icon, color }: St
           {delta}
         </p>
       )}
-    </div>
+    </>
+  );
+
+  const className = `rounded-xl border border-gray-100 bg-white p-4 shadow-sm ${to ? 'block transition-shadow hover:shadow-md' : ''}`;
+
+  return to ? (
+    <Link to={to} className={className}>
+      {body}
+    </Link>
+  ) : (
+    <div className={className}>{body}</div>
   );
 }

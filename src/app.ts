@@ -152,6 +152,7 @@ import { Server } from 'socket.io';
 import { initSockets } from './sockets/socketManager';
 import { dispatchScheduledRides } from './utils/scheduledRideDispatcher';
 import { sendScheduledRideReminders } from './utils/scheduledRideReminders';
+import { reconcilePendingPayments } from './utils/paymentReconciler';
 
 const PORT = process.env.PORT || 5000;
 const server = createServer(app);
@@ -178,11 +179,13 @@ const connectDB = async () => {
       // Run immediately to catch any rides that became due while server was down
       setTimeout(dispatchScheduledRides, 5000);
       setTimeout(sendScheduledRideReminders, 8000);
+      setTimeout(reconcilePendingPayments, 10000);
 
       // Then check every 60 seconds
       setInterval(dispatchScheduledRides, 60 * 1000);
       setInterval(sendScheduledRideReminders, 60 * 1000);
-      console.log('[Scheduler] Scheduled ride dispatcher and reminders checks started (every 60s)');
+      setInterval(reconcilePendingPayments, 2 * 60 * 1000);
+      console.log('[Scheduler] Scheduled ride dispatcher, reminders, and payment reconciliation checks started');
     });
   } catch (err) {
     console.error('Failed to connect to database', err);

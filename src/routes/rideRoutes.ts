@@ -5,6 +5,7 @@ import {
   startRide, completeRide, rateRide, cancelRide,
   getUserRideHistory, getDriverRideHistory,
 } from '../controllers/rideController';
+import { requireAdminAuth } from '../middleware/adminAuthMiddleware';
 
 const router = Router();
 
@@ -65,6 +66,18 @@ router.put('/:id/status', async (req: Request, res: Response) => {
     res.json(updatedRide);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Admin-only — remove a bad/test/duplicate ride record.
+router.delete('/:id', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const ride = await Ride.findById(req.params.id as string);
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+    await Ride.deleteOne({ id: req.params.id as string });
+    res.json({ message: 'Ride deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 });
 

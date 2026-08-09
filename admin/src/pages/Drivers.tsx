@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Panel from '../components/Panel';
 import SearchInput from '../components/SearchInput';
 import StatusBadge from '../components/StatusBadge';
@@ -23,19 +24,22 @@ function verificationTone(status?: string): { label: string; tone: 'amber' | 'gr
 
 export default function Drivers() {
   const { loading, error, data, refetch } = useApiList(fetchDrivers);
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
   const [actingId, setActingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    return data.filter((d) => {
-      const matchesFilter = filter === 'All' || (d.verification_status || 'pending').toLowerCase() === filter.toLowerCase();
-      const q = search.trim().toLowerCase();
-      const matchesSearch =
-        !q || d.display_name?.toLowerCase().includes(q) || d.phone_number?.toLowerCase().includes(q) || d.email?.toLowerCase().includes(q);
-      return matchesFilter && matchesSearch;
-    });
+    return data
+      .filter((d) => {
+        const matchesFilter = filter === 'All' || (d.verification_status || 'pending').toLowerCase() === filter.toLowerCase();
+        const q = search.trim().toLowerCase();
+        const matchesSearch =
+          !q || d.display_name?.toLowerCase().includes(q) || d.phone_number?.toLowerCase().includes(q) || d.email?.toLowerCase().includes(q);
+        return matchesFilter && matchesSearch;
+      })
+      .sort((a, b) => new Date(b.created_time || 0).getTime() - new Date(a.created_time || 0).getTime());
   }, [data, search, filter]);
 
   async function handleAction(id: string, action: 'approve' | 'reject' | 'suspend' | 'reactivate') {
@@ -94,7 +98,11 @@ export default function Drivers() {
                     const busy = actingId === String(d.id);
                     const isPending = (d.verification_status || 'pending').toLowerCase() === 'pending';
                     return (
-                      <tr key={d.id} className="border-b border-gray-50 last:border-0">
+                      <tr
+                        key={d.id}
+                        onClick={() => navigate(`/drivers/${d.id}`)}
+                        className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50"
+                      >
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-2">
                             {d.photo_url ? (
@@ -125,7 +133,7 @@ export default function Drivers() {
                           </div>
                         </td>
                         <td className="py-3 pr-4 text-gray-500">{formatDate(d.created_time)}</td>
-                        <td className="py-3 pr-4">
+                        <td className="py-3 pr-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex flex-wrap gap-2">
                             {isPending && (
                               <>

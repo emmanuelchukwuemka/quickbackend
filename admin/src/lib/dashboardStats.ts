@@ -12,6 +12,7 @@ export interface StatCardData {
   trend: Trend;
   icon: string;
   color: 'green' | 'orange' | 'blue' | 'purple' | 'amber' | 'red';
+  to?: string;
 }
 
 export interface EarningsPoint {
@@ -46,12 +47,22 @@ export interface PendingApprovalRow {
   applied: string;
 }
 
+export interface RecentSignupRow {
+  id: string;
+  name: string;
+  role: 'driver' | 'passenger';
+  joinedDate: string;
+  joinedTime: string;
+  to: string;
+}
+
 export interface DashboardStats {
   statCards: StatCardData[];
   earningsOverview: EarningsPoint[];
   tripsOverview: { total: number; segments: TripSegment[] };
   recentTrips: RecentTripRow[];
   pendingDriverApprovals: PendingApprovalRow[];
+  recentSignups: RecentSignupRow[];
   liveTripsCount: number;
 }
 
@@ -126,6 +137,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: newDriversThisWeek > 0 ? 'up' : 'flat',
       icon: 'users',
       color: 'green',
+      to: '/drivers',
     },
     {
       id: 'passengers',
@@ -135,6 +147,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: newUsersThisWeek > 0 ? 'up' : 'flat',
       icon: 'user',
       color: 'orange',
+      to: '/passengers',
     },
     {
       id: 'trips',
@@ -144,6 +157,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: tripsToday > 0 ? 'up' : 'flat',
       icon: 'car',
       color: 'blue',
+      to: '/trips',
     },
     {
       id: 'earnings',
@@ -153,6 +167,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: earningsTrend,
       icon: 'wallet',
       color: 'purple',
+      to: '/earnings',
     },
     {
       id: 'pending',
@@ -162,6 +177,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: 'link',
       icon: 'clock',
       color: 'amber',
+      to: '/trips',
     },
     {
       id: 'cancelled',
@@ -171,6 +187,7 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       trend: 'link',
       icon: 'xCircle',
       color: 'red',
+      to: '/trips',
     },
   ];
 
@@ -234,5 +251,33 @@ export function buildDashboardStats(drivers: ApiDriver[], users: ApiUser[], ride
       applied: formatDate(d.created_time),
     }));
 
-  return { statCards, earningsOverview: weekBuckets, tripsOverview, recentTrips, pendingDriverApprovals, liveTripsCount };
+  // --- Recent signups (drivers + passengers combined, newest first) ---
+  const recentSignups: RecentSignupRow[] = [
+    ...drivers.map((d) => ({
+      id: String(d.id),
+      name: d.display_name || d.phone_number || 'Unnamed driver',
+      role: 'driver' as const,
+      created: d.created_time,
+      to: `/drivers/${d.id}`,
+    })),
+    ...users.map((u) => ({
+      id: String(u.id),
+      name: u.display_name || u.phone_number || 'Unnamed passenger',
+      role: 'passenger' as const,
+      created: u.created_time,
+      to: `/passengers/${u.id}`,
+    })),
+  ]
+    .sort((a, b) => new Date(b.created || 0).getTime() - new Date(a.created || 0).getTime())
+    .slice(0, 6)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      role: s.role,
+      joinedDate: formatDate(s.created),
+      joinedTime: formatTime(s.created),
+      to: s.to,
+    }));
+
+  return { statCards, earningsOverview: weekBuckets, tripsOverview, recentTrips, pendingDriverApprovals, recentSignups, liveTripsCount };
 }

@@ -192,11 +192,12 @@ export const requestRide = async (req: Request, res: Response) => {
           const busy = await Ride.findOne({ driver_ref: driverId, status: { $in: activeStatuses } });
           if (busy) continue;
           const driverRow = await query(
-            `SELECT is_online, wallet_balance FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
+            `SELECT is_online, wallet_balance, verification_status FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
             [driverId]
           );
           const isOnline = (driverRow.rows[0]?.is_online ?? '').toString().toLowerCase() === 'online';
           if (!isOnline) continue;
+          if ((driverRow.rows[0]?.verification_status ?? '') !== 'approved') continue;
           const walletBalance = Number(driverRow.rows[0]?.wallet_balance ?? 0);
           if (walletBalance < walletMinimum) continue;
           io.to(socketId).emit('new_ride_offer', { ride: rideData });
@@ -210,7 +211,7 @@ export const requestRide = async (req: Request, res: Response) => {
       // FCM: push to online drivers who have a token stored and meet the wallet minimum
       try {
         const tokenRows = await query(
-          `SELECT fcm_token FROM drivers WHERE is_online = 'Online' AND wallet_balance >= $1 AND fcm_token IS NOT NULL AND fcm_token != ''`,
+          `SELECT fcm_token FROM drivers WHERE is_online = 'Online' AND wallet_balance >= $1 AND verification_status = 'approved' AND fcm_token IS NOT NULL AND fcm_token != ''`,
           [walletMinimum]
         );
         const tokens = tokenRows.rows.map((r: any) => r.fcm_token as string).filter(Boolean);
@@ -257,6 +258,9 @@ export const acceptRide = async (req: Request, res: Response) => {
       if (driver) {
         if (driver.is_active === false) {
           return res.status(403).json({ message: 'Your account has been suspended.', code: 'DRIVER_SUSPENDED' });
+        }
+        if (driver.verification_status !== 'approved') {
+          return res.status(403).json({ message: 'Your account is not yet approved.', code: 'DRIVER_NOT_APPROVED' });
         }
         const walletMinimum = (await FareSettings.getSettings()).wallet_minimum_balance;
         if ((driver.wallet_balance ?? 0) < walletMinimum) {
@@ -368,6 +372,26 @@ export const completeRide = async (req: Request, res: Response) => {
             note: `${settings.commission_percent}% commission on ride ${id}`,
             ride_ref: id,
           }).save();
+
+          // Commission just dropped them below the minimum — tell them now,
+          // rather than let them find out the silent way next time they try
+          // to accept a ride.
+          if (balanceAfter < settings.wallet_minimum_balance) {
+            try {
+              const tokenRow = await query(`SELECT fcm_token FROM drivers WHERE id = $1 LIMIT 1`, [driver.id]);
+              const fcmToken = tokenRow.rows[0]?.fcm_token;
+              if (fcmToken) {
+                await sendPushToTokens(
+                  [fcmToken],
+                  'Wallet balance low',
+                  `Your balance is now ₦${balanceAfter.toFixed(0)}. Fund your wallet to keep accepting rides.`,
+                  { type: 'wallet_low_balance' }
+                );
+              }
+            } catch (pushErr) {
+              console.warn('[FCM] low-balance push error:', pushErr);
+            }
+          }
         }
       }
     } catch (walletErr) {

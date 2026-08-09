@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllDrivers, getDriverById, createDriver, updateDriver, uploadDocuments, saveFcmToken } from '../controllers/driverController';
+import { getAllDrivers, getDriverById, createDriver, updateDriver, deleteDriver, uploadDocuments, saveFcmToken } from '../controllers/driverController';
 import { fundDriverWallet, getWalletTransactions } from '../controllers/walletController';
 import { requireAdminAuth } from '../middleware/adminAuthMiddleware';
 
@@ -10,6 +10,7 @@ router.get('/', getAllDrivers);
 router.get('/:id', getDriverById);
 router.post('/', createDriver);
 router.put('/:id', updateDriver);
+router.delete('/:id', requireAdminAuth, deleteDriver);
 router.post('/:id/documents', uploadDocuments);
 // Manual credit — admin-only. Real driver-initiated top-ups go through the
 // Paystack flow (see paymentGatewayRoutes.ts), which is unauthenticated by

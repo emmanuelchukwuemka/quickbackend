@@ -165,12 +165,51 @@ export const initDb = async () => {
       wallet_balance DECIMAL(12,2) DEFAULT 0,
       car_model VARCHAR(255) DEFAULT '',
       car_plate VARCHAR(50) DEFAULT '',
-      fcm_token VARCHAR(1000) DEFAULT ''
+      fcm_token VARCHAR(1000) DEFAULT '',
+      date_of_birth VARCHAR(20) DEFAULT '',
+      gender VARCHAR(20) DEFAULT '',
+      residential_address VARCHAR(500) DEFAULT '',
+      state VARCHAR(100) DEFAULT '',
+      lga VARCHAR(100) DEFAULT '',
+      emergency_contact_name VARCHAR(255) DEFAULT '',
+      emergency_contact_phone VARCHAR(50) DEFAULT '',
+      emergency_contact_relationship VARCHAR(100) DEFAULT '',
+      nin VARCHAR(50) DEFAULT '',
+      license_number VARCHAR(100) DEFAULT '',
+      license_expiry VARCHAR(20) DEFAULT '',
+      vehicle_make VARCHAR(100) DEFAULT '',
+      vehicle_year VARCHAR(10) DEFAULT '',
+      vehicle_colour VARCHAR(50) DEFAULT '',
+      vehicle_registration_number VARCHAR(100) DEFAULT '',
+      seat_count INT DEFAULT 4,
+      is_air_conditioned BOOLEAN DEFAULT TRUE,
+      vehicle_ownership VARCHAR(50) DEFAULT ''
     );
   `, 'create drivers');
   // Retrofits fcm_token onto drivers tables created before this column
   // existed here; run() already swallows "duplicate column" errors.
   await run(`ALTER TABLE drivers ADD COLUMN fcm_token VARCHAR(1000) DEFAULT ''`, 'add drivers.fcm_token');
+  // Retrofits the full signup-wizard field set (personal info,
+  // identification, vehicle details) onto drivers tables created before
+  // this wizard existed — same idempotent pattern as fcm_token above.
+  await run(`ALTER TABLE drivers ADD COLUMN date_of_birth VARCHAR(20) DEFAULT ''`, 'add drivers.date_of_birth');
+  await run(`ALTER TABLE drivers ADD COLUMN gender VARCHAR(20) DEFAULT ''`, 'add drivers.gender');
+  await run(`ALTER TABLE drivers ADD COLUMN residential_address VARCHAR(500) DEFAULT ''`, 'add drivers.residential_address');
+  await run(`ALTER TABLE drivers ADD COLUMN state VARCHAR(100) DEFAULT ''`, 'add drivers.state');
+  await run(`ALTER TABLE drivers ADD COLUMN lga VARCHAR(100) DEFAULT ''`, 'add drivers.lga');
+  await run(`ALTER TABLE drivers ADD COLUMN emergency_contact_name VARCHAR(255) DEFAULT ''`, 'add drivers.emergency_contact_name');
+  await run(`ALTER TABLE drivers ADD COLUMN emergency_contact_phone VARCHAR(50) DEFAULT ''`, 'add drivers.emergency_contact_phone');
+  await run(`ALTER TABLE drivers ADD COLUMN emergency_contact_relationship VARCHAR(100) DEFAULT ''`, 'add drivers.emergency_contact_relationship');
+  await run(`ALTER TABLE drivers ADD COLUMN nin VARCHAR(50) DEFAULT ''`, 'add drivers.nin');
+  await run(`ALTER TABLE drivers ADD COLUMN license_number VARCHAR(100) DEFAULT ''`, 'add drivers.license_number');
+  await run(`ALTER TABLE drivers ADD COLUMN license_expiry VARCHAR(20) DEFAULT ''`, 'add drivers.license_expiry');
+  await run(`ALTER TABLE drivers ADD COLUMN vehicle_make VARCHAR(100) DEFAULT ''`, 'add drivers.vehicle_make');
+  await run(`ALTER TABLE drivers ADD COLUMN vehicle_year VARCHAR(10) DEFAULT ''`, 'add drivers.vehicle_year');
+  await run(`ALTER TABLE drivers ADD COLUMN vehicle_colour VARCHAR(50) DEFAULT ''`, 'add drivers.vehicle_colour');
+  await run(`ALTER TABLE drivers ADD COLUMN vehicle_registration_number VARCHAR(100) DEFAULT ''`, 'add drivers.vehicle_registration_number');
+  await run(`ALTER TABLE drivers ADD COLUMN seat_count INT DEFAULT 4`, 'add drivers.seat_count');
+  await run(`ALTER TABLE drivers ADD COLUMN is_air_conditioned BOOLEAN DEFAULT TRUE`, 'add drivers.is_air_conditioned');
+  await run(`ALTER TABLE drivers ADD COLUMN vehicle_ownership VARCHAR(50) DEFAULT ''`, 'add drivers.vehicle_ownership');
 
   // ── rides ──────────────────────────────────────────────────────────────────
   await run(`

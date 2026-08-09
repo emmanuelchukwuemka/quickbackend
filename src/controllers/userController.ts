@@ -60,7 +60,10 @@ export const saveFcmToken = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'user_uid and fcm_token are required' });
     }
     const { query } = await import('../db');
-    await query(`UPDATE users SET fcm_token = $1 WHERE uid = $2`, [fcm_token, user_uid]);
+    // The app sends whichever id it has on hand (numeric id after most
+    // login paths, string uid elsewhere) — match either, same as the
+    // lookups in socketManager.ts, or this silently updates 0 rows.
+    await query(`UPDATE users SET fcm_token = $1 WHERE uid = $2 OR id::text = $2`, [fcm_token, user_uid]);
     res.json({ message: 'FCM token saved' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

@@ -87,13 +87,28 @@ export const uploadDocuments = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteDriver = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const driver = await Driver.findById(id);
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+    await Driver.deleteOne({ id });
+    res.json({ message: 'Driver deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const saveFcmToken = async (req: Request, res: Response) => {
   try {
     const { driver_uid, fcm_token } = req.body;
     if (!driver_uid || !fcm_token) {
       return res.status(400).json({ message: 'driver_uid and fcm_token are required' });
     }
-    await query(`UPDATE drivers SET fcm_token = $1 WHERE uid = $2`, [fcm_token, driver_uid]);
+    // Same id/uid mismatch as saveFcmToken in userController.ts — the app
+    // sends whichever id it has on hand, so match either or this silently
+    // updates 0 rows.
+    await query(`UPDATE drivers SET fcm_token = $1 WHERE uid = $2 OR id::text = $2`, [fcm_token, driver_uid]);
     res.json({ message: 'FCM token saved' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

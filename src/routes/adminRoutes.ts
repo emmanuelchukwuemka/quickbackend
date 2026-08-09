@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { approveDriver, rejectDriver, suspendDriver, reactivateDriver, suspendPassenger, reactivatePassenger } from '../controllers/adminController';
+import { getWalletSummary } from '../controllers/walletController';
 import { requireAdminAuth } from '../middleware/adminAuthMiddleware';
 
 const router = Router();
@@ -19,5 +20,9 @@ router.put('/driver/:id/reactivate', reactivateDriver);
 // PUT suspend / reactivate a passenger
 router.put('/passenger/:id/suspend', suspendPassenger);
 router.put('/passenger/:id/reactivate', reactivatePassenger);
+
+// GET platform-wide wallet totals (commission earned, driver top-ups) + a
+// daily-bucketed window for charting.
+router.get('/wallet-summary', getWalletSummary);
 
 export default router;

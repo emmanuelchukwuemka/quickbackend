@@ -62,3 +62,18 @@ export const getWalletTransactions = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Admin-only, platform-wide view — total commission earned, total driver
+// top-ups, and a daily-bucketed window for charting. Gated by
+// requireAdminAuth at the route level.
+export const getWalletSummary = async (_req: Request, res: Response) => {
+  try {
+    const totals = await WalletTransaction.sumByType();
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const recent = await WalletTransaction.findSince(since);
+    res.json({ totals, recent });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

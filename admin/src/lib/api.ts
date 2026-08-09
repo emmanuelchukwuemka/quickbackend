@@ -40,6 +40,11 @@ const del = <T>(path: string) => apiRequest<T>(path, { method: 'DELETE' });
 
 // ── Core entities ──────────────────────────────────────────────────────────
 
+export interface ApiDriverDocument {
+  type: string;
+  url: string;
+}
+
 export interface ApiDriver {
   id: string | number;
   uid: string;
@@ -57,6 +62,25 @@ export interface ApiDriver {
   driver_rating?: number;
   wallet_balance?: number;
   fcm_token?: string;
+  documents?: ApiDriverDocument[];
+  date_of_birth?: string;
+  gender?: string;
+  residential_address?: string;
+  state?: string;
+  lga?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  nin?: string;
+  license_number?: string;
+  license_expiry?: string;
+  vehicle_make?: string;
+  vehicle_year?: string;
+  vehicle_colour?: string;
+  vehicle_registration_number?: string;
+  seat_count?: number;
+  is_air_conditioned?: boolean;
+  vehicle_ownership?: string;
 }
 
 export interface ApiUser {
@@ -64,6 +88,7 @@ export interface ApiUser {
   uid: string;
   email?: string;
   display_name: string;
+  photo_url?: string;
   phone_number?: string;
   created_time?: string;
   is_active?: boolean;
@@ -71,6 +96,10 @@ export interface ApiUser {
   wallet_balance?: number;
   numbe_trips?: number;
   fcm_token?: string;
+  dob?: string;
+  gender?: string;
+  state?: string;
+  country?: string;
 }
 
 export interface ApiRide {
@@ -107,9 +136,35 @@ export interface ApiScheduledRide {
 }
 
 export const fetchDrivers = () => get<ApiDriver[]>('/api/drivers');
+export const fetchDriverById = (id: string) => get<ApiDriver>(`/api/drivers/${id}`);
 export const fetchUsers = () => get<ApiUser[]>('/api/users');
+export const fetchUserById = (id: string) => get<ApiUser>(`/api/users/${id}`);
 export const fetchRides = () => get<ApiRide[]>('/api/rides');
+export const fetchDriverRideHistory = (driverId: string) => get<ApiRide[]>(`/api/rides/history/driver/${driverId}`);
+export const fetchUserRideHistory = (userId: string) => get<ApiRide[]>(`/api/rides/history/user/${userId}`);
 export const fetchScheduledRides = () => get<ApiScheduledRide[]>('/api/scheduled-rides');
+
+export interface ApiWalletTransaction {
+  id: string;
+  driver_ref: string;
+  type: 'topup' | 'commission' | 'adjustment';
+  amount: number;
+  balance_after: number;
+  note?: string;
+  ride_ref?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+export const fetchDriverWalletTransactions = (driverId: string) =>
+  get<ApiWalletTransaction[]>(`/api/drivers/${driverId}/wallet/transactions`);
+
+export interface ApiWalletSummary {
+  totals: { topup: number; commission: number; adjustment: number };
+  recent: ApiWalletTransaction[];
+}
+
+export const fetchWalletSummary = () => get<ApiWalletSummary>('/api/admin/wallet-summary');
 
 export const approveDriver = (id: string) => put(`/api/admin/driver/${id}/approve`);
 export const rejectDriver = (id: string) => put(`/api/admin/driver/${id}/reject`);
@@ -121,6 +176,11 @@ export const reactivatePassenger = (id: string) => put(`/api/admin/passenger/${i
 export async function fetchDashboardSource() {
   const [drivers, users, rides] = await Promise.all([fetchDrivers(), fetchUsers(), fetchRides()]);
   return { drivers, users, rides };
+}
+
+export async function fetchPassengersSource() {
+  const [users, rides] = await Promise.all([fetchUsers(), fetchRides()]);
+  return { users, rides };
 }
 
 export async function fetchBookingsSource() {
