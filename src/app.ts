@@ -22,6 +22,7 @@ import fareSettingsRoutes from './routes/fareSettingsRoutes';
 import adminAlertRoutes from './routes/adminAlertRoutes';
 import paymentGatewayRoutes from './routes/paymentGatewayRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import callRoutes from './routes/callRoutes';
 import path from 'path';
 
 import City from './models/City';
@@ -127,6 +128,7 @@ app.use('/api/admin/alerts', adminAlertRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/calls', callRoutes);
 
 // Mock Data Replacement Routes
 app.get('/api/cities', async (req: Request, res: Response) => {

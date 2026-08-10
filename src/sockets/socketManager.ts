@@ -188,6 +188,10 @@ export const initSockets = (io: Server) => {
                 type: 'chat_message',
                 message: data.message,
                 senderName: data.senderName,
+                // So a killed/locked recipient's app can open straight to
+                // this thread without guessing who the other party is.
+                fromId: data.senderId,
+                fromRole: data.toRole === 'driver' ? 'passenger' : 'driver',
               }
             );
           }
@@ -233,7 +237,17 @@ export const initSockets = (io: Server) => {
               [fcmToken],
               `Incoming call from ${data.fromName}`,
               'Tap to answer',
-              { rideId: data.rideId, callId: data.callId, type: 'incoming_call' }
+              {
+                rideId: data.rideId,
+                callId: data.callId,
+                type: 'incoming_call',
+                // So the callee's device can show a full-screen ringing UI
+                // and — if declined right from that screen — tell the
+                // caller without ever opening the app.
+                fromId: data.fromId,
+                fromRole: data.fromRole,
+                fromName: data.fromName,
+              }
             );
             return true;
           } catch (fcmErr) {
