@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import User from '../models/User';
+import type { AuthRequest } from '../middleware/authMiddleware';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -48,6 +50,31 @@ export const updateUser = async (req: Request, res: Response) => {
     }
 
     res.json(updatedUser);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Anonymizes the caller's own account rather than deleting the row outright
+// — ride records reference passenger_ref by id, and hard-deleting would
+// blank out the driver's own trip history for every ride this passenger
+// ever took. is_active=false blocks every login path (see authController),
+// so the account is permanently inaccessible even though the row remains.
+export const deleteOwnAccount = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.user!.id;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    await User.findByIdAndUpdate(id, {
+      display_name: 'Deleted User',
+      email: `deleted-${crypto.randomUUID()}@quickdrop.ng`,
+      phone_number: '',
+      photo_url: '',
+      password: crypto.randomUUID(),
+      is_active: false,
+    });
+    res.json({ message: 'Account deleted.' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

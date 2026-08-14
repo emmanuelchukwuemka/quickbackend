@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import Driver from '../models/Driver';
 import AdminNotification from '../models/AdminNotification';
 import { query } from '../db';
+import type { AuthRequest } from '../middleware/authMiddleware';
 
 export const getAllDrivers = async (req: Request, res: Response) => {
   try {
@@ -94,6 +96,37 @@ export const deleteDriver = async (req: Request, res: Response) => {
     if (!driver) return res.status(404).json({ message: 'Driver not found' });
     await Driver.deleteOne({ id });
     res.json({ message: 'Driver deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Anonymizes the caller's own account rather than deleting the row outright
+// — ride records reference driver_ref by id, and hard-deleting would blank
+// out passengers' own trip history for every ride this driver ever gave.
+// is_active=false blocks every login path (see authController), so the
+// account is permanently inaccessible even though the row remains.
+export const deleteOwnAccount = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.user!.id;
+    const driver = await Driver.findById(id);
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    await Driver.findByIdAndUpdate(id, {
+      display_name: 'Deleted User',
+      email: `deleted-${crypto.randomUUID()}@quickdrop.ng`,
+      phone_number: '',
+      photo_url: '',
+      password: crypto.randomUUID(),
+      is_active: false,
+      documents: null,
+      residential_address: '',
+      nin: '',
+      license_number: '',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+    });
+    res.json({ message: 'Account deleted.' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

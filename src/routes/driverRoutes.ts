@@ -1,11 +1,15 @@
 import { Router } from 'express';
-import { getAllDrivers, getDriverById, createDriver, updateDriver, deleteDriver, uploadDocuments, saveFcmToken } from '../controllers/driverController';
+import { getAllDrivers, getDriverById, createDriver, updateDriver, deleteDriver, uploadDocuments, saveFcmToken, deleteOwnAccount } from '../controllers/driverController';
 import { fundDriverWallet, getWalletTransactions } from '../controllers/walletController';
 import { requireAdminAuth } from '../middleware/adminAuthMiddleware';
+import { verifyToken } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.put('/fcm-token', saveFcmToken);
+// Must come before /:id below — otherwise Express matches "me" as an :id
+// and routes it to the admin-only deleteDriver handler instead.
+router.delete('/me', verifyToken, deleteOwnAccount);
 router.get('/', getAllDrivers);
 router.get('/:id', getDriverById);
 router.post('/', createDriver);
