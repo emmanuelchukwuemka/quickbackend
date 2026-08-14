@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/images/app-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Request deletion of your QuickDrop account and associated data." />
+    <title>Delete Account — QuickDrop</title>
+  </head>
+  <body class="bg-white text-gray-900">
+    <!-- Nav -->
+    <header class="sticky top-0 z-50 border-b border-brand-border bg-white/90 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+        <a href="/" class="flex items-center gap-2">
+          <img src="/images/logo-pin.png" alt="QuickDrop" class="h-8 w-8" />
+          <span class="text-lg font-bold">
+            <span class="text-gray-900">Quick</span><span class="text-brand-primary">Drop</span>
+          </span>
+        </a>
+        <a href="/" class="text-sm font-medium text-gray-600 hover:text-brand-dark">&larr; Back to home</a>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="mx-auto max-w-xl px-5 py-16">
+      <h1 class="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">Delete Your Account</h1>
+      <p class="mt-4 text-gray-600">
+        Submit this form to request permanent deletion of your QuickDrop account and associated data — trip
+        history, profile details, and (for drivers) verification documents. We'll process your request and confirm
+        by email or phone within a few business days.
+      </p>
+      <p class="mt-3 text-sm text-gray-500">
+        Note: we may retain certain records (such as trip history tied to unresolved disputes, or records required
+        for legal or accounting purposes) even after your account is deleted, as described in our
+        <a href="/privacy.html" class="text-brand-primary hover:underline">Privacy Policy</a>.
+      </p>
+
+      <form id="delete-form" class="mt-10 space-y-5">
+        <div>
+          <label for="contact" class="block text-sm font-medium text-gray-700">Email or phone number on your account</label>
+          <input
+            id="contact"
+            name="contact"
+            type="text"
+            required
+            placeholder="you@example.com or 080..."
+            class="mt-1.5 w-full rounded-lg border border-brand-border px-4 py-2.5 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+          />
+        </div>
+
+        <div>
+          <span class="block text-sm font-medium text-gray-700">Account type</span>
+          <div class="mt-2 flex gap-6">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="role" value="passenger" checked class="text-brand-primary focus:ring-brand-primary" />
+              Passenger
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="radio" name="role" value="driver" class="text-brand-primary focus:ring-brand-primary" />
+              Driver
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label for="reason" class="block text-sm font-medium text-gray-700">Reason (optional)</label>
+          <textarea
+            id="reason"
+            name="reason"
+            rows="3"
+            placeholder="Let us know why you're leaving — optional"
+            class="mt-1.5 w-full rounded-lg border border-brand-border px-4 py-2.5 text-sm focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          id="submit-btn"
+          class="w-full rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+        >
+          Request Account Deletion
+        </button>
+
+        <p id="form-error" class="hidden text-sm text-red-600"></p>
+      </form>
+
+      <div id="form-success" class="mt-10 hidden rounded-2xl border border-brand-border bg-brand-bg p-6 text-center">
+        <h2 class="font-semibold text-gray-900">Request received</h2>
+        <p class="mt-2 text-sm text-gray-600">
+          We've received your account deletion request and will process it shortly. If we need anything else from
+          you, we'll reach out using the contact info you provided.
+        </p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-brand-border bg-brand-bg">
+      <div class="mx-auto max-w-6xl px-5 py-10">
+        <div class="flex flex-col items-center justify-between gap-6 md:flex-row">
+          <a href="/" class="flex items-center gap-2">
+            <img src="/images/logo-pin.png" alt="QuickDrop" class="h-7 w-7" />
+            <span class="text-base font-bold">
+              <span class="text-gray-900">Quick</span><span class="text-brand-primary">Drop</span>
+            </span>
+          </a>
+          <div class="text-center text-xs text-gray-400 md:text-right">
+            © 2026 QuickDrop. All rights reserved.
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/delete-account.ts"></script>
+  </body>
+</html>

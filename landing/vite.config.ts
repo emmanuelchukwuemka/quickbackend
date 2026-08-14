@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         privacy: resolve(import.meta.dirname, 'privacy.html'),
+        deleteAccount: resolve(import.meta.dirname, 'delete-account.html'),
       },
     },
   },
