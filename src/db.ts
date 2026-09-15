@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcrypt';
 
 const rawUrl = process.env.DATABASE_URL || 'mysql://root:@localhost:3306/quick_backend';
 
@@ -75,6 +76,28 @@ const run = async (sql: string, label: string) => {
     await query(sql);
   } catch (e: any) {
     console.warn(`[initDb] ${label}: ${e.message}`);
+  }
+};
+
+// Passwords used to be stored in plain text. Bcrypt hashes are
+// self-identifying ($2a$/$2b$/$2y$ prefix), so this is safe to run on every
+// startup: already-hashed rows are skipped by the WHERE clause itself, so
+// once every row has been migrated once, this is just a cheap empty SELECT.
+const rehashPlainTextPasswords = async (table: 'users' | 'drivers') => {
+  try {
+    const { rows } = await query(
+      `SELECT id, password FROM ${table}
+        WHERE password != '' AND LEFT(password, 4) NOT IN ('$2a$', '$2b$', '$2y$')`
+    );
+    for (const row of rows) {
+      const hashed = await bcrypt.hash(row.password, 10);
+      await query(`UPDATE ${table} SET password = $1 WHERE id = $2`, [hashed, row.id]);
+    }
+    if (rows.length > 0) {
+      console.log(`[db] Rehashed ${rows.length} plain-text password(s) in ${table}`);
+    }
+  } catch (e: any) {
+    console.warn(`[db] rehashPlainTextPasswords(${table}): ${e.message}`);
   }
 };
 
@@ -441,4 +464,7 @@ export const initDb = async () => {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `, 'create fare_settings');
+
+  await rehashPlainTextPasswords('users');
+  await rehashPlainTextPasswords('drivers');
 };

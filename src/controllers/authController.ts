@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import User from '../models/User';
 import Driver from '../models/Driver';
@@ -108,6 +109,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
 export const userSignup = async (req: Request, res: Response) => {
   try {
     const userData = { ...req.body };
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
     let existingUser = null;
     if (userData.email) {
       existingUser = await User.findOne({ email: userData.email });
@@ -150,7 +154,7 @@ export const userLogin = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({ message: 'No account found with this email or phone.' });
     }
-    if (user.password !== password) {
+    if (!user.password || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Incorrect password.' });
     }
     if (user.is_active === false) {
@@ -166,6 +170,9 @@ export const userLogin = async (req: Request, res: Response) => {
 export const driverSignup = async (req: Request, res: Response) => {
   try {
     const driverData = { ...req.body };
+    if (driverData.password) {
+      driverData.password = await bcrypt.hash(driverData.password, 10);
+    }
 
     // Check if driver already exists by email or phone
     let existing: any = null;
@@ -221,7 +228,7 @@ export const driverLogin = async (req: Request, res: Response) => {
     if (!driver) {
       return res.status(404).json({ message: 'No driver account found with this email or phone.' });
     }
-    if (driver.password !== password) {
+    if (!driver.password || !(await bcrypt.compare(password, driver.password))) {
       return res.status(401).json({ message: 'Incorrect password.' });
     }
     if (driver.is_active === false) {
@@ -259,7 +266,8 @@ export const resetUserPassword = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({ message: 'No account found with this email' });
     }
-    await User.findByIdAndUpdate(user.id!, { password: newPassword });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(user.id!, { password: hashed });
     await Otp.deleteOne({ id: otpRecord.id });
     res.json({ message: 'Password updated successfully' });
   } catch (error: any) {
@@ -284,7 +292,8 @@ export const resetDriverPassword = async (req: Request, res: Response) => {
     if (!driver) {
       return res.status(404).json({ message: 'No driver account found with this email' });
     }
-    await Driver.findByIdAndUpdate(driver.id!, { password: newPassword });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await Driver.findByIdAndUpdate(driver.id!, { password: hashed });
     await Otp.deleteOne({ id: otpRecord.id });
     res.json({ message: 'Password updated successfully' });
   } catch (error: any) {
