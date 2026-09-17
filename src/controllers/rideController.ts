@@ -186,19 +186,41 @@ export const requestRide = async (req: Request, res: Response) => {
       try {
         const io = getIO();
         const activeStatuses = ['accepted', 'in_progress', 'In_progress', 'arrived'];
+        const driverIds = Array.from(driverSockets.keys());
+
+        // Previously this ran two separate DB queries per connected driver
+        // socket, sequentially, before the passenger's "ride requested"
+        // response could be sent - up to 2*N round-trips for N online
+        // drivers, on every single ride request. Replaced with exactly two
+        // bulk queries total, run in parallel, then filtered in memory.
+        const statusPlaceholders = activeStatuses.map((_, i) => `$${i + 1}`).join(', ');
+        const driverPlaceholders = driverIds.map((_, i) => `$${i + 1}`).join(', ');
+        const [busyRows, eligibleRows] = await Promise.all([
+          query(`SELECT DISTINCT driver_ref FROM rides WHERE status IN (${statusPlaceholders})`, activeStatuses),
+          driverIds.length > 0
+            ? query(
+                `SELECT id, uid, is_online, wallet_balance, verification_status FROM drivers WHERE id IN (${driverPlaceholders}) OR uid IN (${driverPlaceholders})`,
+                driverIds
+              )
+            : Promise.resolve({ rows: [] as any[] }),
+        ]);
+
+        const busyDriverRefs = new Set(busyRows.rows.map((r: any) => String(r.driver_ref)));
+        const driverInfoByKey = new Map<string, any>();
+        for (const row of eligibleRows.rows) {
+          driverInfoByKey.set(String(row.id), row);
+          if (row.uid) driverInfoByKey.set(String(row.uid), row);
+        }
+
         let sent = 0;
         for (const [driverId, socketId] of driverSockets.entries()) {
-          // Skip drivers already on an active ride
-          const busy = await Ride.findOne({ driver_ref: driverId, status: { $in: activeStatuses } });
-          if (busy) continue;
-          const driverRow = await query(
-            `SELECT is_online, wallet_balance, verification_status FROM drivers WHERE id::text = $1 OR uid = $1 LIMIT 1`,
-            [driverId]
-          );
-          const isOnline = (driverRow.rows[0]?.is_online ?? '').toString().toLowerCase() === 'online';
+          if (busyDriverRefs.has(String(driverId))) continue;
+          const info = driverInfoByKey.get(String(driverId));
+          if (!info) continue;
+          const isOnline = (info.is_online ?? '').toString().toLowerCase() === 'online';
           if (!isOnline) continue;
-          if ((driverRow.rows[0]?.verification_status ?? '') !== 'approved') continue;
-          const walletBalance = Number(driverRow.rows[0]?.wallet_balance ?? 0);
+          if ((info.verification_status ?? '') !== 'approved') continue;
+          const walletBalance = Number(info.wallet_balance ?? 0);
           if (walletBalance < walletMinimum) continue;
           io.to(socketId).emit('new_ride_offer', { ride: rideData });
           sent++;

@@ -162,6 +162,8 @@ export const initDb = async () => {
       fcm_token VARCHAR(1000) DEFAULT ''
     );
   `, 'create users');
+  await run(`CREATE INDEX idx_users_uid ON users (uid)`, 'index users.uid');
+  await run(`CREATE INDEX idx_users_phone_number ON users (phone_number)`, 'index users.phone_number');
 
   // ── drivers ────────────────────────────────────────────────────────────────
   await run(`
@@ -233,6 +235,8 @@ export const initDb = async () => {
   await run(`ALTER TABLE drivers ADD COLUMN seat_count INT DEFAULT 4`, 'add drivers.seat_count');
   await run(`ALTER TABLE drivers ADD COLUMN is_air_conditioned BOOLEAN DEFAULT TRUE`, 'add drivers.is_air_conditioned');
   await run(`ALTER TABLE drivers ADD COLUMN vehicle_ownership VARCHAR(50) DEFAULT ''`, 'add drivers.vehicle_ownership');
+  await run(`CREATE INDEX idx_drivers_uid ON drivers (uid)`, 'index drivers.uid');
+  await run(`CREATE INDEX idx_drivers_phone_number ON drivers (phone_number)`, 'index drivers.phone_number');
 
   // ── rides ──────────────────────────────────────────────────────────────────
   await run(`
@@ -261,6 +265,9 @@ export const initDb = async () => {
       rating INT NULL
     );
   `, 'create rides');
+  await run(`CREATE INDEX idx_rides_driver_ref ON rides (driver_ref)`, 'index rides.driver_ref');
+  await run(`CREATE INDEX idx_rides_passenger_ref ON rides (passenger_ref)`, 'index rides.passenger_ref');
+  await run(`CREATE INDEX idx_rides_status ON rides (status)`, 'index rides.status');
 
   // ── payments ───────────────────────────────────────────────────────────────
   await run(`
