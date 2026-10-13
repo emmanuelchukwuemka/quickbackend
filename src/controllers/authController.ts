@@ -7,6 +7,7 @@ import Driver from '../models/Driver';
 import Otp from '../models/Otp';
 import AdminNotification from '../models/AdminNotification';
 import { otpFallbackDisplayName } from '../utils/displayName';
+import { verifyAppleIdentityToken } from '../utils/appleAuth';
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
@@ -27,6 +28,7 @@ export const requestOtp = async (req: Request, res: Response) => {
     if (email) {
       const otp = new Otp({ email, code });
       await otp.save();
+      console.error(`[otp][request] email=${email} code=${code} id=${otp.id} createdAt=${otp.createdAt?.toISOString()} now=${new Date().toISOString()}`);
       // Fire-and-forget — respond immediately, Resend handles delivery
       sendEmail(email, 'Your OTP Code', `Your QuickDrop verification code is: ${code}\n\nThis code expires in 10 minutes.`)
         .then(() => console.error(`[mailer] OTP delivered to ${email}`))
@@ -49,18 +51,34 @@ export const requestOtp = async (req: Request, res: Response) => {
   }
 };
 
+// Dedicated Apple/Google app-review account. Reviewers can't receive a
+// real OTP, so this one email+code pair bypasses the OTP table entirely.
+// Not a general backdoor - the email is fixed and not a real inbox.
+const APP_REVIEW_EMAIL = 'appreview@quickdrop.ng';
+const APP_REVIEW_CODE = '111111';
+
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
     const { phone_number, email, code, role } = req.body;
-    
-    // Build query conditions manually depending on what is provided
-    let condition: any = { code };
-    if (email) condition.email = email;
-    if (phone_number) condition.phone_number = phone_number;
 
-    const otp = await Otp.findOne(condition);
-    if (!otp) return res.status(400).json({ message: 'Invalid or expired OTP' });
-    
+    const isReviewLogin = email === APP_REVIEW_EMAIL && code === APP_REVIEW_CODE;
+
+    if (!isReviewLogin) {
+      // Build query conditions manually depending on what is provided
+      let condition: any = { code };
+      if (email) condition.email = email;
+      if (phone_number) condition.phone_number = phone_number;
+
+      const otp = await Otp.findOne(condition);
+      if (!otp) {
+        const existing = email ? await Otp.find({ email }) : await Otp.find({ phone_number });
+        console.error(`[otp][verify] MISMATCH submitted code=${code} email=${email || ''} phone=${phone_number || ''} now=${new Date().toISOString()} existingRows=${JSON.stringify(existing.map(o => ({ code: o.code, createdAt: o.createdAt?.toISOString() })))}`);
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
+      console.error(`[otp][verify] MATCH code=${code} email=${email || ''} phone=${phone_number || ''}`);
+      await Otp.deleteOne({ id: otp.id });
+    }
+
     const requestedRole = role === 'driver' ? 'driver' : 'passenger';
     let account: any;
     let isNew = false;
@@ -95,7 +113,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
     }
 
-    await Otp.deleteOne({ id: otp.id });
     const token = generateToken(account.id!);
     if (requestedRole === 'driver') {
       return res.json({ driver: account, token, role: 'driver', is_new: isNew });
@@ -344,6 +361,42 @@ export const googleLogin = async (req: Request, res: Response) => {
     } else if (!user.display_name && name) {
       user.display_name = name;
       await User.findByIdAndUpdate(user.id!, { display_name: name });
+    }
+
+    if (user.is_active === false) {
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
+    }
+
+    const token = generateToken(user.id!);
+    return res.status(200).json({ user, token });
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+export const appleLogin = async (req: Request, res: Response) => {
+  try {
+    const { identityToken, displayName: clientDisplayName } = req.body;
+    if (!identityToken) return res.status(400).json({ message: 'Missing identityToken' });
+
+    const { sub: appleSub, email } = await verifyAppleIdentityToken(identityToken);
+
+    // Apple only sends the user's name on the very first authorization ever
+    // granted to this app, so the client passes along whatever it got then;
+    // every return visit after that, name comes back empty from Apple itself.
+    if (!email) return res.status(400).json({ message: 'No email found in Apple token' });
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      const newUser = new User({
+        uid: appleSub,
+        email,
+        display_name: clientDisplayName || '',
+      });
+      user = await newUser.save();
+    } else if (!user.display_name && clientDisplayName) {
+      user.display_name = clientDisplayName;
+      await User.findByIdAndUpdate(user.id!, { display_name: clientDisplayName });
     }
 
     if (user.is_active === false) {

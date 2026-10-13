@@ -52,7 +52,12 @@ export default class Otp {
 
   static async findOne(condition: any = {}) {
     const { clause, values } = buildWhere(condition);
-    const result = await query(`SELECT * FROM otps WHERE ${clause} AND created_at >= NOW() - INTERVAL '5 minutes' LIMIT 1`, values);
+    // Compare against a cutoff computed here rather than the DB's own NOW() —
+    // otherwise any clock/timezone drift between the app server and the DB
+    // server makes a just-created code look already expired.
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+    const allValues = [...values, cutoff];
+    const result = await query(`SELECT * FROM otps WHERE ${clause} AND created_at >= $${allValues.length} LIMIT 1`, allValues);
     if (!result.rowCount) return null;
     return Otp.fromRow(result.rows[0]);
   }
