@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const adminAlertController_1 = require("../controllers/adminAlertController");
+const adminAuthMiddleware_1 = require("../middleware/adminAuthMiddleware");
+const router = (0, express_1.Router)();
+router.use(adminAuthMiddleware_1.requireAdminAuth);
+router.get('/', adminAlertController_1.listAdminAlerts);
+router.put('/read-all', adminAlertController_1.markAllAdminAlertsRead);
+router.put('/:id/read', adminAlertController_1.markAdminAlertRead);
+exports.default = router;

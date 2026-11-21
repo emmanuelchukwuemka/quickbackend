@@ -1,0 +1,167 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildUpdateSet = exports.buildWhere = exports.mapIdKeys = void 0;
+const mapIdKeys = (condition) => {
+    if (!condition || typeof condition !== 'object')
+        return condition;
+    if (Array.isArray(condition))
+        return condition.map(exports.mapIdKeys);
+    const mapped = {};
+    for (const key of Object.keys(condition)) {
+        const value = condition[key];
+        if (key === '_id') {
+            mapped.id = value;
+        }
+        else if (key === '$or' || key === '$and') {
+            mapped[key] = (0, exports.mapIdKeys)(value);
+        }
+        else {
+            mapped[key] = (0, exports.mapIdKeys)(value);
+        }
+    }
+    return mapped;
+};
+exports.mapIdKeys = mapIdKeys;
+const buildWhere = (condition = {}, values = []) => {
+    condition = (0, exports.mapIdKeys)(condition);
+    if (!condition || Object.keys(condition).length === 0) {
+        return { clause: 'TRUE', values };
+    }
+    const parts = [];
+    for (const key of Object.keys(condition)) {
+        const value = condition[key];
+        if (key === '$or' && Array.isArray(value)) {
+            const orParts = value.map((item) => {
+                const result = (0, exports.buildWhere)(item, values);
+                values = result.values;
+                return `(${result.clause})`;
+            });
+            parts.push(orParts.join(' OR '));
+            continue;
+        }
+        if (key === '$and' && Array.isArray(value)) {
+            const andParts = value.map((item) => {
+                const result = (0, exports.buildWhere)(item, values);
+                values = result.values;
+                return `(${result.clause})`;
+            });
+            parts.push(andParts.join(' AND '));
+            continue;
+        }
+        if (key === 'location' && value?.$near) {
+            const coords = value.$near.$geometry?.coordinates;
+            const maxDistance = value.$near.$maxDistance || 5000;
+            if (!Array.isArray(coords) || coords.length !== 2) {
+                throw new Error('Invalid $near coordinates');
+            }
+            const [lng, lat] = coords;
+            const degreeDistance = maxDistance / 111000;
+            values.push(lat, lng, degreeDistance);
+            const idx = values.length;
+            parts.push(`(POWER(lat - $${idx - 2}, 2) + POWER((lng - $${idx - 1}) * cos(radians($${idx - 2})), 2)) <= POWER($${idx}, 2)`);
+            continue;
+        }
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            if ('$exists' in value) {
+                parts.push(`${key} ${value.$exists ? 'IS NOT NULL' : 'IS NULL'}`);
+                continue;
+            }
+            if ('$in' in value) {
+                const arr = Array.isArray(value.$in) ? value.$in : [];
+                if (arr.length === 0) {
+                    parts.push('FALSE');
+                }
+                else {
+                    const placeholders = arr.map((item) => { values.push(item); return `$${values.length}`; }).join(', ');
+                    parts.push(`${key} IN (${placeholders})`);
+                }
+                continue;
+            }
+            if ('$ne' in value) {
+                values.push(value.$ne);
+                parts.push(`${key} <> $${values.length}`);
+                continue;
+            }
+            if ('$or' in value || '$and' in value) {
+                const nested = (0, exports.buildWhere)(value, values);
+                values = nested.values;
+                parts.push(`(${nested.clause})`);
+                continue;
+            }
+            values.push(JSON.stringify(value));
+            parts.push(`${key} = $${values.length}`);
+        }
+        else {
+            values.push(value);
+            parts.push(`${key} = $${values.length}`);
+        }
+    }
+    return { clause: parts.join(' AND '), values };
+};
+exports.buildWhere = buildWhere;
+const buildUpdateSet = (updates, values = []) => {
+    const setParts = [];
+    if (!updates || typeof updates !== 'object') {
+        return { set: '', values };
+    }
+    const normalized = { ...updates };
+    if ('location' in normalized && normalized.location?.coordinates) {
+        const [lng, lat] = normalized.location.coordinates;
+        normalized.lat = lat;
+        normalized.lng = lng;
+        delete normalized.location;
+    }
+    if ('pickup' in normalized && normalized.pickup?.coordinates) {
+        const [lng, lat] = normalized.pickup.coordinates;
+        normalized.pickup_lat = lat;
+        normalized.pickup_lng = lng;
+        delete normalized.pickup;
+    }
+    if ('dropoff' in normalized && normalized.dropoff?.coordinates) {
+        const [lng, lat] = normalized.dropoff.coordinates;
+        normalized.dropoff_lat = lat;
+        normalized.dropoff_lng = lng;
+        delete normalized.dropoff;
+    }
+    if (normalized.$inc && typeof normalized.$inc === 'object') {
+        for (const key of Object.keys(normalized.$inc)) {
+            const value = normalized.$inc[key];
+            values.push(value);
+            setParts.push(`${key} = ${key} + $${values.length}`);
+        }
+        delete normalized.$inc;
+    }
+    if (normalized.$push && typeof normalized.$push === 'object') {
+        for (const key of Object.keys(normalized.$push)) {
+            const value = normalized.$push[key];
+            if (key === 'documents' && value?.$each) {
+                values.push(JSON.stringify(value.$each));
+                setParts.push(`documents = JSON_MERGE_PRESERVE(documents, $${values.length})`);
+            }
+        }
+        delete normalized.$push;
+    }
+    for (const key of Object.keys(normalized)) {
+        if (key.startsWith('$'))
+            continue;
+        const value = normalized[key];
+        if (value === undefined)
+            continue;
+        // Treat Date objects as primitive timestamp values, not jsonb
+        if (value instanceof Date) {
+            values.push(value);
+            setParts.push(`${key} = $${values.length}`);
+            continue;
+        }
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            values.push(JSON.stringify(value));
+            setParts.push(`${key} = $${values.length}`);
+        }
+        else {
+            values.push(value);
+            setParts.push(`${key} = $${values.length}`);
+        }
+    }
+    return { set: setParts.join(', '), values };
+};
+exports.buildUpdateSet = buildUpdateSet;

@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const userController_1 = require("../controllers/userController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.put('/fcm-token', userController_1.saveFcmToken);
+router.delete('/me', authMiddleware_1.verifyToken, userController_1.deleteOwnAccount);
+router.get('/', userController_1.getAllUsers);
+router.get('/:id', userController_1.getUserById);
+router.post('/', userController_1.createUser);
+router.put('/:id', userController_1.updateUser);
+exports.default = router;

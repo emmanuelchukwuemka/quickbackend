@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dbCleanupController_1 = require("../controllers/dbCleanupController");
+const adminAuthMiddleware_1 = require("../middleware/adminAuthMiddleware");
+const router = (0, express_1.Router)();
+router.use(adminAuthMiddleware_1.requireAdminAuth);
+router.get('/backup', dbCleanupController_1.backupBeforeWipe);
+router.post('/wipe', dbCleanupController_1.wipeOperationalData);
+exports.default = router;

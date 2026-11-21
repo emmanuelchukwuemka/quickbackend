@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const promoCodeController_1 = require("../controllers/promoCodeController");
+const adminAuthMiddleware_1 = require("../middleware/adminAuthMiddleware");
+const router = (0, express_1.Router)();
+router.use(adminAuthMiddleware_1.requireAdminAuth);
+router.get('/', promoCodeController_1.listPromoCodes);
+router.post('/', promoCodeController_1.createPromoCode);
+router.put('/:id', promoCodeController_1.updatePromoCode);
+router.delete('/:id', promoCodeController_1.deletePromoCode);
+exports.default = router;

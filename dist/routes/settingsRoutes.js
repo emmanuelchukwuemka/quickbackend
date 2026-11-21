@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const settingsController_1 = require("../controllers/settingsController");
+const adminAuthMiddleware_1 = require("../middleware/adminAuthMiddleware");
+const router = (0, express_1.Router)();
+router.use(adminAuthMiddleware_1.requireAdminAuth);
+router.post('/ride-options', settingsController_1.createRideOption);
+router.put('/ride-options/:id', settingsController_1.updateRideOption);
+router.delete('/ride-options/:id', settingsController_1.deleteRideOption);
+router.post('/cities', settingsController_1.createCity);
+router.delete('/cities/:id', settingsController_1.deleteCity);
+exports.default = router;

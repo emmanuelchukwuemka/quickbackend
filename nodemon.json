@@ -1,5 +1,0 @@
-{
-  "watch": ["src"],
-  "ext": "ts,json",
-  "ignore": ["admin/**", "landing/**", "node_modules/**", "dist/**"]
-}
